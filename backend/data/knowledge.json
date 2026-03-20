@@ -1,26 +1,42 @@
 [
   {
+    "doc_id": "doc_credit_utilization_v1",
     "topic": "credit_utilization",
     "title": "Credit Utilization",
     "content": "Credit utilization is the share of your available revolving credit that you are currently using. Lower utilization usually helps credit scores, and keeping it below 30 percent is a common rule of thumb.",
-    "tags": ["utilization", "credit cards", "score factors"]
+    "tags": ["utilization", "credit cards", "score factors"],
+    "source": "Internal Credit Education Guide",
+    "effective_date": "2026-03-20",
+    "version": "1.0"
   },
   {
+    "doc_id": "doc_hard_inquiry_v1",
     "topic": "hard_inquiry",
     "title": "Hard Inquiry Impact",
     "content": "A hard inquiry can slightly lower a credit score for a short period because it signals new credit seeking. Multiple hard inquiries in a short window may create more pressure than a single inquiry.",
-    "tags": ["hard inquiry", "credit report", "score drop"]
+    "tags": ["hard inquiry", "credit report", "score drop"],
+    "source": "Internal Credit Education Guide",
+    "effective_date": "2026-03-20",
+    "version": "1.0"
   },
   {
+    "doc_id": "doc_payment_history_v1",
     "topic": "payment_history",
     "title": "Payment History Impact",
     "content": "Payment history is one of the strongest scoring factors. Recent missed or late payments can lower a score materially and may continue to affect the file until they age.",
-    "tags": ["late payment", "payment history", "score change"]
+    "tags": ["late payment", "payment history", "score change"],
+    "source": "Internal Credit Education Guide",
+    "effective_date": "2026-03-20",
+    "version": "1.0"
   },
   {
+    "doc_id": "doc_score_improvement_v1",
     "topic": "score_improvement",
     "title": "Score Improvement Basics",
     "content": "Common ways to improve a score include lowering revolving balances, avoiding new hard inquiries when possible, and keeping every payment on time.",
-    "tags": ["improve score", "recommendations", "credit health"]
+    "tags": ["improve score", "recommendations", "credit health"],
+    "source": "Internal Credit Education Guide",
+    "effective_date": "2026-03-20",
+    "version": "1.0"
   }
 ]
