@@ -6,10 +6,10 @@ from pydantic import BaseModel, Field
 
 
 ChatCategory = Literal[
-    "PERSONAL_FINANCE_FACT",
-    "PERSONAL_FINANCE_EXPLANATION",
-    "GENERAL_FINANCE_KNOWLEDGE",
-    "RECOMMENDATION",
+    "SIMPLE_FACT",
+    "SIMPLE_RECOMMENDATION",
+    "COMPLEX_EXPLANATION",
+    "GENERAL_KNOWLEDGE",
     "UNSUPPORTED",
 ]
 
@@ -30,11 +30,18 @@ class ChatCard(BaseModel):
     metadata: dict[str, str] = Field(default_factory=dict)
 
 
+class ChatExplanation(BaseModel):
+    causes: List[str] = Field(default_factory=list)
+    evidence: List[str] = Field(default_factory=list)
+    suggested_actions: List[str] = Field(default_factory=list)
+
+
 class ChatResponse(BaseModel):
     message: str
     cards: List[ChatCard] = Field(default_factory=list)
     requires_disclaimer: bool
     category: ChatCategory
+    explanation: Optional[ChatExplanation] = None
 
 
 class ClassificationResult(BaseModel):
