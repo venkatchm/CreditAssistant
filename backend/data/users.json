@@ -1,0 +1,52 @@
+[
+  {
+    "user_id": "user_001",
+    "full_name": "Ava Thompson",
+    "age": 41,
+    "city": "Austin",
+    "state": "TX",
+    "occupation": "Product Director",
+    "annual_income": 168000,
+    "persona": "EXCELLENT_PROFILE"
+  },
+  {
+    "user_id": "user_002",
+    "full_name": "Marcus Lee",
+    "age": 33,
+    "city": "Phoenix",
+    "state": "AZ",
+    "occupation": "Operations Manager",
+    "annual_income": 84000,
+    "persona": "HIGH_UTILIZATION_USER"
+  },
+  {
+    "user_id": "user_003",
+    "full_name": "Sofia Ramirez",
+    "age": 29,
+    "city": "Chicago",
+    "state": "IL",
+    "occupation": "UX Designer",
+    "annual_income": 76000,
+    "persona": "RECENT_DELINQUENCY_USER"
+  },
+  {
+    "user_id": "user_004",
+    "full_name": "Noah Patel",
+    "age": 24,
+    "city": "Seattle",
+    "state": "WA",
+    "occupation": "Data Analyst",
+    "annual_income": 62000,
+    "persona": "THIN_FILE_USER"
+  },
+  {
+    "user_id": "user_005",
+    "full_name": "Jasmine Brooks",
+    "age": 31,
+    "city": "Atlanta",
+    "state": "GA",
+    "occupation": "Sales Executive",
+    "annual_income": 91000,
+    "persona": "CREDIT_HUNGRY_USER"
+  }
+]

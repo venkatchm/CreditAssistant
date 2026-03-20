@@ -1,0 +1,237 @@
+[
+  {
+    "user_id": "user_001",
+    "score": 792,
+    "score_band": "very_good",
+    "score_change_30d": 6,
+    "revolving_limit_total": 44000,
+    "revolving_balance_total": 1470,
+    "revolving_utilization": 0.0334,
+    "installment_balance_total": 358800,
+    "installment_original_total": 442000,
+    "installment_utilization": 0.8118,
+    "open_revolving_accounts": 3,
+    "open_installment_accounts": 2,
+    "total_hard_inquiries_12m": 0,
+    "recent_hard_inquiries_90d": 0,
+    "on_time_payment_ratio": 1.0,
+    "delinquent_accounts": 0,
+    "months_since_last_delinquency": null,
+    "total_available_credit": 42530,
+    "trends": [
+      {
+        "metric": "score",
+        "direction": "improving",
+        "detail": "Score moved 6 points in the last 30 days."
+      },
+      {
+        "metric": "utilization",
+        "direction": "improving",
+        "detail": "Revolving utilization is 3.3%."
+      },
+      {
+        "metric": "inquiries",
+        "direction": "stable",
+        "detail": "0 hard inquiries posted in the last 90 days."
+      },
+      {
+        "metric": "payment_history",
+        "direction": "improving",
+        "detail": "No delinquencies were found in recent payment history."
+      }
+    ],
+    "key_drivers": [
+      "Low card utilization is helping the score.",
+      "Low revolving utilization across multiple cards",
+      "No missed payments or derogatory marks"
+    ]
+  },
+  {
+    "user_id": "user_002",
+    "score": 648,
+    "score_band": "fair",
+    "score_change_30d": -24,
+    "revolving_limit_total": 10200,
+    "revolving_balance_total": 9015,
+    "revolving_utilization": 0.8838,
+    "installment_balance_total": 10400,
+    "installment_original_total": 21000,
+    "installment_utilization": 0.4952,
+    "open_revolving_accounts": 3,
+    "open_installment_accounts": 1,
+    "total_hard_inquiries_12m": 0,
+    "recent_hard_inquiries_90d": 0,
+    "on_time_payment_ratio": 1.0,
+    "delinquent_accounts": 0,
+    "months_since_last_delinquency": null,
+    "total_available_credit": 1185,
+    "trends": [
+      {
+        "metric": "score",
+        "direction": "worsening",
+        "detail": "Score moved -24 points in the last 30 days."
+      },
+      {
+        "metric": "utilization",
+        "direction": "worsening",
+        "detail": "Revolving utilization is 88.4%."
+      },
+      {
+        "metric": "inquiries",
+        "direction": "stable",
+        "detail": "0 hard inquiries posted in the last 90 days."
+      },
+      {
+        "metric": "payment_history",
+        "direction": "improving",
+        "detail": "No delinquencies were found in recent payment history."
+      }
+    ],
+    "key_drivers": [
+      "High revolving utilization is suppressing the score.",
+      "Revolving balances are using most available credit",
+      "Recent balance growth pushed utilization sharply higher"
+    ]
+  },
+  {
+    "user_id": "user_003",
+    "score": 611,
+    "score_band": "fair",
+    "score_change_30d": -58,
+    "revolving_limit_total": 10500,
+    "revolving_balance_total": 3205,
+    "revolving_utilization": 0.3052,
+    "installment_balance_total": 21400,
+    "installment_original_total": 28000,
+    "installment_utilization": 0.7643,
+    "open_revolving_accounts": 2,
+    "open_installment_accounts": 1,
+    "total_hard_inquiries_12m": 0,
+    "recent_hard_inquiries_90d": 0,
+    "on_time_payment_ratio": 0.9444,
+    "delinquent_accounts": 1,
+    "months_since_last_delinquency": 2,
+    "total_available_credit": 7295,
+    "trends": [
+      {
+        "metric": "score",
+        "direction": "worsening",
+        "detail": "Score moved -58 points in the last 30 days."
+      },
+      {
+        "metric": "utilization",
+        "direction": "stable",
+        "detail": "Revolving utilization is 30.5%."
+      },
+      {
+        "metric": "inquiries",
+        "direction": "stable",
+        "detail": "0 hard inquiries posted in the last 90 days."
+      },
+      {
+        "metric": "payment_history",
+        "direction": "worsening",
+        "detail": "Last delinquency was 2 months ago."
+      }
+    ],
+    "key_drivers": [
+      "A recent delinquency remains a major negative factor.",
+      "A recent delinquency is the largest negative factor",
+      "Moderate card balances are adding some pressure"
+    ]
+  },
+  {
+    "user_id": "user_004",
+    "score": 689,
+    "score_band": "good",
+    "score_change_30d": 3,
+    "revolving_limit_total": 2000,
+    "revolving_balance_total": 180,
+    "revolving_utilization": 0.09,
+    "installment_balance_total": 11320,
+    "installment_original_total": 12000,
+    "installment_utilization": 0.9433,
+    "open_revolving_accounts": 1,
+    "open_installment_accounts": 1,
+    "total_hard_inquiries_12m": 0,
+    "recent_hard_inquiries_90d": 0,
+    "on_time_payment_ratio": 1.0,
+    "delinquent_accounts": 0,
+    "months_since_last_delinquency": null,
+    "total_available_credit": 1820,
+    "trends": [
+      {
+        "metric": "score",
+        "direction": "improving",
+        "detail": "Score moved 3 points in the last 30 days."
+      },
+      {
+        "metric": "utilization",
+        "direction": "improving",
+        "detail": "Revolving utilization is 9.0%."
+      },
+      {
+        "metric": "inquiries",
+        "direction": "stable",
+        "detail": "0 hard inquiries posted in the last 90 days."
+      },
+      {
+        "metric": "payment_history",
+        "direction": "improving",
+        "detail": "No delinquencies were found in recent payment history."
+      }
+    ],
+    "key_drivers": [
+      "Low card utilization is helping the score.",
+      "Short credit history limits score upside",
+      "Very few open accounts make the file thin"
+    ]
+  },
+  {
+    "user_id": "user_005",
+    "score": 634,
+    "score_band": "fair",
+    "score_change_30d": -19,
+    "revolving_limit_total": 11500,
+    "revolving_balance_total": 3050,
+    "revolving_utilization": 0.2652,
+    "installment_balance_total": 14120,
+    "installment_original_total": 15000,
+    "installment_utilization": 0.9413,
+    "open_revolving_accounts": 3,
+    "open_installment_accounts": 1,
+    "total_hard_inquiries_12m": 4,
+    "recent_hard_inquiries_90d": 1,
+    "on_time_payment_ratio": 1.0,
+    "delinquent_accounts": 0,
+    "months_since_last_delinquency": null,
+    "total_available_credit": 8450,
+    "trends": [
+      {
+        "metric": "score",
+        "direction": "worsening",
+        "detail": "Score moved -19 points in the last 30 days."
+      },
+      {
+        "metric": "utilization",
+        "direction": "stable",
+        "detail": "Revolving utilization is 26.5%."
+      },
+      {
+        "metric": "inquiries",
+        "direction": "stable",
+        "detail": "1 hard inquiries posted in the last 90 days."
+      },
+      {
+        "metric": "payment_history",
+        "direction": "improving",
+        "detail": "No delinquencies were found in recent payment history."
+      }
+    ],
+    "key_drivers": [
+      "Several recent hard inquiries are adding risk.",
+      "Many recent hard inquiries signal active credit seeking",
+      "Several new accounts reduced average account age"
+    ]
+  }
+]

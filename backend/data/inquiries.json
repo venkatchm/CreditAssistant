@@ -1,0 +1,74 @@
+[
+  {
+    "inquiry_id": "iq_user_001_01",
+    "user_id": "user_001",
+    "creditor": "Wells Fargo Auto",
+    "inquiry_type": "auto",
+    "inquiry_date": "2022-03-05",
+    "bureau": "TransUnion",
+    "is_hard": true
+  },
+  {
+    "inquiry_id": "iq_user_002_01",
+    "user_id": "user_002",
+    "creditor": "Chase",
+    "inquiry_type": "credit_card",
+    "inquiry_date": "2023-08-01",
+    "bureau": "Experian",
+    "is_hard": true
+  },
+  {
+    "inquiry_id": "iq_user_003_01",
+    "user_id": "user_003",
+    "creditor": "Apple Card",
+    "inquiry_type": "credit_card",
+    "inquiry_date": "2022-09-29",
+    "bureau": "Equifax",
+    "is_hard": true
+  },
+  {
+    "inquiry_id": "iq_user_004_01",
+    "user_id": "user_004",
+    "creditor": "Discover",
+    "inquiry_type": "credit_card",
+    "inquiry_date": "2024-02-10",
+    "bureau": "TransUnion",
+    "is_hard": true
+  },
+  {
+    "inquiry_id": "iq_user_005_01",
+    "user_id": "user_005",
+    "creditor": "Chase",
+    "inquiry_type": "credit_card",
+    "inquiry_date": "2025-11-12",
+    "bureau": "Experian",
+    "is_hard": true
+  },
+  {
+    "inquiry_id": "iq_user_005_02",
+    "user_id": "user_005",
+    "creditor": "Capital One",
+    "inquiry_type": "credit_card",
+    "inquiry_date": "2025-09-02",
+    "bureau": "Experian",
+    "is_hard": true
+  },
+  {
+    "inquiry_id": "iq_user_005_03",
+    "user_id": "user_005",
+    "creditor": "SoFi",
+    "inquiry_type": "personal_loan",
+    "inquiry_date": "2025-11-28",
+    "bureau": "Experian",
+    "is_hard": true
+  },
+  {
+    "inquiry_id": "iq_user_005_04",
+    "user_id": "user_005",
+    "creditor": "Citi",
+    "inquiry_type": "credit_card",
+    "inquiry_date": "2025-08-14",
+    "bureau": "Experian",
+    "is_hard": true
+  }
+]

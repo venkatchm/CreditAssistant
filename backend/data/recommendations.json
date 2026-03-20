@@ -1,0 +1,182 @@
+[
+  {
+    "recommendation_id": "rec_user_001_01",
+    "user_id": "user_001",
+    "title": "Keep balances low before statement close",
+    "priority": "low",
+    "category": "utilization",
+    "rationale": "Current utilization is already a strength worth preserving.",
+    "action": "Continue paying down statement balances early so reported utilization stays in the single digits.",
+    "expected_impact": "Helps preserve excellent score stability."
+  },
+  {
+    "recommendation_id": "rec_user_001_02",
+    "user_id": "user_001",
+    "title": "Maintain perfect payment history",
+    "priority": "medium",
+    "category": "payment_history",
+    "rationale": "Payment consistency is helping this profile.",
+    "action": "Keep autopay enabled and monitor for any due-date changes after account servicing updates.",
+    "expected_impact": "Preserves the strongest scoring factor."
+  },
+  {
+    "recommendation_id": "rec_user_001_03",
+    "user_id": "user_001",
+    "title": "Apply selectively only when it improves your mix",
+    "priority": "low",
+    "category": "inquiries",
+    "rationale": "There is no inquiry pressure on this file right now.",
+    "action": "Keep future applications limited to products that materially improve rewards, limits, or credit mix.",
+    "expected_impact": "Maintains inquiry profile strength."
+  },
+  {
+    "recommendation_id": "rec_user_001_04",
+    "user_id": "user_001",
+    "title": "Monitor credit reports monthly",
+    "priority": "low",
+    "category": "monitoring",
+    "rationale": "Ongoing monitoring helps catch balance spikes, late marks, and inquiry errors early.",
+    "action": "Review all three bureau reports and track balances before statement dates each month.",
+    "expected_impact": "Improves control over score changes and dispute response time."
+  },
+  {
+    "recommendation_id": "rec_user_002_01",
+    "user_id": "user_002",
+    "title": "Reduce card balances below 30% utilization",
+    "priority": "high",
+    "category": "utilization",
+    "rationale": "High utilization is one of the strongest negative signals in this file.",
+    "action": "Direct upcoming payments toward the highest-balance cards first and avoid new card spend until total utilization drops below 30%.",
+    "expected_impact": "Can improve score within one or two reporting cycles if balances fall materially."
+  },
+  {
+    "recommendation_id": "rec_user_002_02",
+    "user_id": "user_002",
+    "title": "Maintain perfect payment history",
+    "priority": "medium",
+    "category": "payment_history",
+    "rationale": "Payment consistency is helping this profile.",
+    "action": "Keep autopay enabled and monitor for any due-date changes after account servicing updates.",
+    "expected_impact": "Preserves the strongest scoring factor."
+  },
+  {
+    "recommendation_id": "rec_user_002_03",
+    "user_id": "user_002",
+    "title": "Apply selectively only when it improves your mix",
+    "priority": "low",
+    "category": "inquiries",
+    "rationale": "There is no inquiry pressure on this file right now.",
+    "action": "Keep future applications limited to products that materially improve rewards, limits, or credit mix.",
+    "expected_impact": "Maintains inquiry profile strength."
+  },
+  {
+    "recommendation_id": "rec_user_002_04",
+    "user_id": "user_002",
+    "title": "Monitor credit reports monthly",
+    "priority": "low",
+    "category": "monitoring",
+    "rationale": "Ongoing monitoring helps catch balance spikes, late marks, and inquiry errors early.",
+    "action": "Review all three bureau reports and track balances before statement dates each month.",
+    "expected_impact": "Improves control over score changes and dispute response time."
+  },
+  {
+    "recommendation_id": "rec_user_003_02",
+    "user_id": "user_003",
+    "title": "Protect the next six months of payments",
+    "priority": "high",
+    "category": "payment_history",
+    "rationale": "Recent delinquency damage will fade only if new payments stay perfect.",
+    "action": "Turn on autopay for at least the minimum due and add calendar reminders for each account until the late mark ages.",
+    "expected_impact": "Prevents additional score damage and supports gradual recovery."
+  },
+  {
+    "recommendation_id": "rec_user_003_03",
+    "user_id": "user_003",
+    "title": "Apply selectively only when it improves your mix",
+    "priority": "low",
+    "category": "inquiries",
+    "rationale": "There is no inquiry pressure on this file right now.",
+    "action": "Keep future applications limited to products that materially improve rewards, limits, or credit mix.",
+    "expected_impact": "Maintains inquiry profile strength."
+  },
+  {
+    "recommendation_id": "rec_user_003_04",
+    "user_id": "user_003",
+    "title": "Monitor credit reports monthly",
+    "priority": "low",
+    "category": "monitoring",
+    "rationale": "Ongoing monitoring helps catch balance spikes, late marks, and inquiry errors early.",
+    "action": "Review all three bureau reports and track balances before statement dates each month.",
+    "expected_impact": "Improves control over score changes and dispute response time."
+  },
+  {
+    "recommendation_id": "rec_user_004_01",
+    "user_id": "user_004",
+    "title": "Keep balances low before statement close",
+    "priority": "low",
+    "category": "utilization",
+    "rationale": "Current utilization is already a strength worth preserving.",
+    "action": "Continue paying down statement balances early so reported utilization stays in the single digits.",
+    "expected_impact": "Helps preserve excellent score stability."
+  },
+  {
+    "recommendation_id": "rec_user_004_02",
+    "user_id": "user_004",
+    "title": "Maintain perfect payment history",
+    "priority": "medium",
+    "category": "payment_history",
+    "rationale": "Payment consistency is helping this profile.",
+    "action": "Keep autopay enabled and monitor for any due-date changes after account servicing updates.",
+    "expected_impact": "Preserves the strongest scoring factor."
+  },
+  {
+    "recommendation_id": "rec_user_004_03",
+    "user_id": "user_004",
+    "title": "Apply selectively only when it improves your mix",
+    "priority": "low",
+    "category": "inquiries",
+    "rationale": "There is no inquiry pressure on this file right now.",
+    "action": "Keep future applications limited to products that materially improve rewards, limits, or credit mix.",
+    "expected_impact": "Maintains inquiry profile strength."
+  },
+  {
+    "recommendation_id": "rec_user_004_04",
+    "user_id": "user_004",
+    "title": "Add depth slowly as the file matures",
+    "priority": "medium",
+    "category": "credit_mix",
+    "rationale": "A thin file can cap score upside even when everything is paid on time.",
+    "action": "Let current accounts age first, then consider one additional no-fee revolving account only after six months of stable history.",
+    "expected_impact": "Can improve scoring depth without creating unnecessary inquiry pressure."
+  },
+  {
+    "recommendation_id": "rec_user_005_02",
+    "user_id": "user_005",
+    "title": "Maintain perfect payment history",
+    "priority": "medium",
+    "category": "payment_history",
+    "rationale": "Payment consistency is helping this profile.",
+    "action": "Keep autopay enabled and monitor for any due-date changes after account servicing updates.",
+    "expected_impact": "Preserves the strongest scoring factor."
+  },
+  {
+    "recommendation_id": "rec_user_005_03",
+    "user_id": "user_005",
+    "title": "Pause new credit applications",
+    "priority": "high",
+    "category": "inquiries",
+    "rationale": "Multiple recent hard inquiries suggest aggressive credit seeking.",
+    "action": "Avoid applying for additional cards or loans for the next six months unless there is a real financing need.",
+    "expected_impact": "Allows recent inquiries to age and average account age to stabilize."
+  },
+  {
+    "recommendation_id": "rec_user_005_04",
+    "user_id": "user_005",
+    "title": "Monitor credit reports monthly",
+    "priority": "low",
+    "category": "monitoring",
+    "rationale": "Ongoing monitoring helps catch balance spikes, late marks, and inquiry errors early.",
+    "action": "Review all three bureau reports and track balances before statement dates each month.",
+    "expected_impact": "Improves control over score changes and dispute response time."
+  }
+]

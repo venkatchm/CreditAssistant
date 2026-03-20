@@ -1,0 +1,1082 @@
+[
+  {
+    "payment_id": "ph_user_001_01_202510",
+    "user_id": "user_001",
+    "account_id": "ca_user_001_01",
+    "month": "2025-10",
+    "status": "on_time",
+    "amount_due": 160,
+    "amount_paid": 160,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_001_01_202511",
+    "user_id": "user_001",
+    "account_id": "ca_user_001_01",
+    "month": "2025-11",
+    "status": "on_time",
+    "amount_due": 160,
+    "amount_paid": 160,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_001_01_202512",
+    "user_id": "user_001",
+    "account_id": "ca_user_001_01",
+    "month": "2025-12",
+    "status": "on_time",
+    "amount_due": 160,
+    "amount_paid": 160,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_001_01_202601",
+    "user_id": "user_001",
+    "account_id": "ca_user_001_01",
+    "month": "2026-01",
+    "status": "on_time",
+    "amount_due": 160,
+    "amount_paid": 160,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_001_01_202602",
+    "user_id": "user_001",
+    "account_id": "ca_user_001_01",
+    "month": "2026-02",
+    "status": "on_time",
+    "amount_due": 160,
+    "amount_paid": 160,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_001_01_202603",
+    "user_id": "user_001",
+    "account_id": "ca_user_001_01",
+    "month": "2026-03",
+    "status": "on_time",
+    "amount_due": 160,
+    "amount_paid": 160,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_001_02_202510",
+    "user_id": "user_001",
+    "account_id": "ca_user_001_02",
+    "month": "2025-10",
+    "status": "on_time",
+    "amount_due": 200,
+    "amount_paid": 200,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_001_02_202511",
+    "user_id": "user_001",
+    "account_id": "ca_user_001_02",
+    "month": "2025-11",
+    "status": "on_time",
+    "amount_due": 200,
+    "amount_paid": 200,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_001_02_202512",
+    "user_id": "user_001",
+    "account_id": "ca_user_001_02",
+    "month": "2025-12",
+    "status": "on_time",
+    "amount_due": 200,
+    "amount_paid": 200,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_001_02_202601",
+    "user_id": "user_001",
+    "account_id": "ca_user_001_02",
+    "month": "2026-01",
+    "status": "on_time",
+    "amount_due": 200,
+    "amount_paid": 200,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_001_02_202602",
+    "user_id": "user_001",
+    "account_id": "ca_user_001_02",
+    "month": "2026-02",
+    "status": "on_time",
+    "amount_due": 200,
+    "amount_paid": 200,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_001_02_202603",
+    "user_id": "user_001",
+    "account_id": "ca_user_001_02",
+    "month": "2026-03",
+    "status": "on_time",
+    "amount_due": 200,
+    "amount_paid": 200,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_001_03_202510",
+    "user_id": "user_001",
+    "account_id": "ca_user_001_03",
+    "month": "2025-10",
+    "status": "on_time",
+    "amount_due": 240,
+    "amount_paid": 240,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_001_03_202511",
+    "user_id": "user_001",
+    "account_id": "ca_user_001_03",
+    "month": "2025-11",
+    "status": "on_time",
+    "amount_due": 240,
+    "amount_paid": 240,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_001_03_202512",
+    "user_id": "user_001",
+    "account_id": "ca_user_001_03",
+    "month": "2025-12",
+    "status": "on_time",
+    "amount_due": 240,
+    "amount_paid": 240,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_001_03_202601",
+    "user_id": "user_001",
+    "account_id": "ca_user_001_03",
+    "month": "2026-01",
+    "status": "on_time",
+    "amount_due": 240,
+    "amount_paid": 240,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_001_03_202602",
+    "user_id": "user_001",
+    "account_id": "ca_user_001_03",
+    "month": "2026-02",
+    "status": "on_time",
+    "amount_due": 240,
+    "amount_paid": 240,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_001_03_202603",
+    "user_id": "user_001",
+    "account_id": "ca_user_001_03",
+    "month": "2026-03",
+    "status": "on_time",
+    "amount_due": 240,
+    "amount_paid": 240,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_001_04_202510",
+    "user_id": "user_001",
+    "account_id": "la_user_001_01",
+    "month": "2025-10",
+    "status": "on_time",
+    "amount_due": 280,
+    "amount_paid": 280,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_001_04_202511",
+    "user_id": "user_001",
+    "account_id": "la_user_001_01",
+    "month": "2025-11",
+    "status": "on_time",
+    "amount_due": 280,
+    "amount_paid": 280,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_001_04_202512",
+    "user_id": "user_001",
+    "account_id": "la_user_001_01",
+    "month": "2025-12",
+    "status": "on_time",
+    "amount_due": 280,
+    "amount_paid": 280,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_001_04_202601",
+    "user_id": "user_001",
+    "account_id": "la_user_001_01",
+    "month": "2026-01",
+    "status": "on_time",
+    "amount_due": 280,
+    "amount_paid": 280,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_001_04_202602",
+    "user_id": "user_001",
+    "account_id": "la_user_001_01",
+    "month": "2026-02",
+    "status": "on_time",
+    "amount_due": 280,
+    "amount_paid": 280,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_001_04_202603",
+    "user_id": "user_001",
+    "account_id": "la_user_001_01",
+    "month": "2026-03",
+    "status": "on_time",
+    "amount_due": 280,
+    "amount_paid": 280,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_001_05_202510",
+    "user_id": "user_001",
+    "account_id": "la_user_001_02",
+    "month": "2025-10",
+    "status": "on_time",
+    "amount_due": 320,
+    "amount_paid": 320,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_001_05_202511",
+    "user_id": "user_001",
+    "account_id": "la_user_001_02",
+    "month": "2025-11",
+    "status": "on_time",
+    "amount_due": 320,
+    "amount_paid": 320,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_001_05_202512",
+    "user_id": "user_001",
+    "account_id": "la_user_001_02",
+    "month": "2025-12",
+    "status": "on_time",
+    "amount_due": 320,
+    "amount_paid": 320,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_001_05_202601",
+    "user_id": "user_001",
+    "account_id": "la_user_001_02",
+    "month": "2026-01",
+    "status": "on_time",
+    "amount_due": 320,
+    "amount_paid": 320,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_001_05_202602",
+    "user_id": "user_001",
+    "account_id": "la_user_001_02",
+    "month": "2026-02",
+    "status": "on_time",
+    "amount_due": 320,
+    "amount_paid": 320,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_001_05_202603",
+    "user_id": "user_001",
+    "account_id": "la_user_001_02",
+    "month": "2026-03",
+    "status": "on_time",
+    "amount_due": 320,
+    "amount_paid": 320,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_002_01_202510",
+    "user_id": "user_002",
+    "account_id": "ca_user_002_01",
+    "month": "2025-10",
+    "status": "on_time",
+    "amount_due": 160,
+    "amount_paid": 160,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_002_01_202511",
+    "user_id": "user_002",
+    "account_id": "ca_user_002_01",
+    "month": "2025-11",
+    "status": "on_time",
+    "amount_due": 160,
+    "amount_paid": 160,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_002_01_202512",
+    "user_id": "user_002",
+    "account_id": "ca_user_002_01",
+    "month": "2025-12",
+    "status": "on_time",
+    "amount_due": 160,
+    "amount_paid": 160,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_002_01_202601",
+    "user_id": "user_002",
+    "account_id": "ca_user_002_01",
+    "month": "2026-01",
+    "status": "on_time",
+    "amount_due": 160,
+    "amount_paid": 160,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_002_01_202602",
+    "user_id": "user_002",
+    "account_id": "ca_user_002_01",
+    "month": "2026-02",
+    "status": "on_time",
+    "amount_due": 160,
+    "amount_paid": 160,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_002_01_202603",
+    "user_id": "user_002",
+    "account_id": "ca_user_002_01",
+    "month": "2026-03",
+    "status": "on_time",
+    "amount_due": 160,
+    "amount_paid": 160,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_002_02_202510",
+    "user_id": "user_002",
+    "account_id": "ca_user_002_02",
+    "month": "2025-10",
+    "status": "on_time",
+    "amount_due": 200,
+    "amount_paid": 200,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_002_02_202511",
+    "user_id": "user_002",
+    "account_id": "ca_user_002_02",
+    "month": "2025-11",
+    "status": "on_time",
+    "amount_due": 200,
+    "amount_paid": 200,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_002_02_202512",
+    "user_id": "user_002",
+    "account_id": "ca_user_002_02",
+    "month": "2025-12",
+    "status": "on_time",
+    "amount_due": 200,
+    "amount_paid": 200,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_002_02_202601",
+    "user_id": "user_002",
+    "account_id": "ca_user_002_02",
+    "month": "2026-01",
+    "status": "on_time",
+    "amount_due": 200,
+    "amount_paid": 200,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_002_02_202602",
+    "user_id": "user_002",
+    "account_id": "ca_user_002_02",
+    "month": "2026-02",
+    "status": "on_time",
+    "amount_due": 200,
+    "amount_paid": 200,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_002_02_202603",
+    "user_id": "user_002",
+    "account_id": "ca_user_002_02",
+    "month": "2026-03",
+    "status": "on_time",
+    "amount_due": 200,
+    "amount_paid": 200,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_002_03_202510",
+    "user_id": "user_002",
+    "account_id": "ca_user_002_03",
+    "month": "2025-10",
+    "status": "on_time",
+    "amount_due": 240,
+    "amount_paid": 240,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_002_03_202511",
+    "user_id": "user_002",
+    "account_id": "ca_user_002_03",
+    "month": "2025-11",
+    "status": "on_time",
+    "amount_due": 240,
+    "amount_paid": 240,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_002_03_202512",
+    "user_id": "user_002",
+    "account_id": "ca_user_002_03",
+    "month": "2025-12",
+    "status": "on_time",
+    "amount_due": 240,
+    "amount_paid": 240,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_002_03_202601",
+    "user_id": "user_002",
+    "account_id": "ca_user_002_03",
+    "month": "2026-01",
+    "status": "on_time",
+    "amount_due": 240,
+    "amount_paid": 240,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_002_03_202602",
+    "user_id": "user_002",
+    "account_id": "ca_user_002_03",
+    "month": "2026-02",
+    "status": "on_time",
+    "amount_due": 240,
+    "amount_paid": 240,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_002_03_202603",
+    "user_id": "user_002",
+    "account_id": "ca_user_002_03",
+    "month": "2026-03",
+    "status": "on_time",
+    "amount_due": 240,
+    "amount_paid": 240,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_002_04_202510",
+    "user_id": "user_002",
+    "account_id": "la_user_002_01",
+    "month": "2025-10",
+    "status": "on_time",
+    "amount_due": 280,
+    "amount_paid": 280,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_002_04_202511",
+    "user_id": "user_002",
+    "account_id": "la_user_002_01",
+    "month": "2025-11",
+    "status": "on_time",
+    "amount_due": 280,
+    "amount_paid": 280,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_002_04_202512",
+    "user_id": "user_002",
+    "account_id": "la_user_002_01",
+    "month": "2025-12",
+    "status": "on_time",
+    "amount_due": 280,
+    "amount_paid": 280,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_002_04_202601",
+    "user_id": "user_002",
+    "account_id": "la_user_002_01",
+    "month": "2026-01",
+    "status": "on_time",
+    "amount_due": 280,
+    "amount_paid": 280,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_002_04_202602",
+    "user_id": "user_002",
+    "account_id": "la_user_002_01",
+    "month": "2026-02",
+    "status": "on_time",
+    "amount_due": 280,
+    "amount_paid": 280,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_002_04_202603",
+    "user_id": "user_002",
+    "account_id": "la_user_002_01",
+    "month": "2026-03",
+    "status": "on_time",
+    "amount_due": 280,
+    "amount_paid": 280,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_003_01_202510",
+    "user_id": "user_003",
+    "account_id": "ca_user_003_01",
+    "month": "2025-10",
+    "status": "on_time",
+    "amount_due": 160,
+    "amount_paid": 160,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_003_01_202511",
+    "user_id": "user_003",
+    "account_id": "ca_user_003_01",
+    "month": "2025-11",
+    "status": "on_time",
+    "amount_due": 160,
+    "amount_paid": 160,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_003_01_202512",
+    "user_id": "user_003",
+    "account_id": "ca_user_003_01",
+    "month": "2025-12",
+    "status": "on_time",
+    "amount_due": 160,
+    "amount_paid": 160,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_003_01_202601",
+    "user_id": "user_003",
+    "account_id": "ca_user_003_01",
+    "month": "2026-01",
+    "status": "late_30",
+    "amount_due": 160,
+    "amount_paid": 80,
+    "days_late": 30
+  },
+  {
+    "payment_id": "ph_user_003_01_202602",
+    "user_id": "user_003",
+    "account_id": "ca_user_003_01",
+    "month": "2026-02",
+    "status": "on_time",
+    "amount_due": 160,
+    "amount_paid": 160,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_003_01_202603",
+    "user_id": "user_003",
+    "account_id": "ca_user_003_01",
+    "month": "2026-03",
+    "status": "on_time",
+    "amount_due": 160,
+    "amount_paid": 160,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_003_02_202510",
+    "user_id": "user_003",
+    "account_id": "ca_user_003_02",
+    "month": "2025-10",
+    "status": "on_time",
+    "amount_due": 200,
+    "amount_paid": 200,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_003_02_202511",
+    "user_id": "user_003",
+    "account_id": "ca_user_003_02",
+    "month": "2025-11",
+    "status": "on_time",
+    "amount_due": 200,
+    "amount_paid": 200,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_003_02_202512",
+    "user_id": "user_003",
+    "account_id": "ca_user_003_02",
+    "month": "2025-12",
+    "status": "on_time",
+    "amount_due": 200,
+    "amount_paid": 200,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_003_02_202601",
+    "user_id": "user_003",
+    "account_id": "ca_user_003_02",
+    "month": "2026-01",
+    "status": "on_time",
+    "amount_due": 200,
+    "amount_paid": 200,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_003_02_202602",
+    "user_id": "user_003",
+    "account_id": "ca_user_003_02",
+    "month": "2026-02",
+    "status": "on_time",
+    "amount_due": 200,
+    "amount_paid": 200,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_003_02_202603",
+    "user_id": "user_003",
+    "account_id": "ca_user_003_02",
+    "month": "2026-03",
+    "status": "on_time",
+    "amount_due": 200,
+    "amount_paid": 200,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_003_03_202510",
+    "user_id": "user_003",
+    "account_id": "la_user_003_01",
+    "month": "2025-10",
+    "status": "on_time",
+    "amount_due": 240,
+    "amount_paid": 240,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_003_03_202511",
+    "user_id": "user_003",
+    "account_id": "la_user_003_01",
+    "month": "2025-11",
+    "status": "on_time",
+    "amount_due": 240,
+    "amount_paid": 240,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_003_03_202512",
+    "user_id": "user_003",
+    "account_id": "la_user_003_01",
+    "month": "2025-12",
+    "status": "on_time",
+    "amount_due": 240,
+    "amount_paid": 240,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_003_03_202601",
+    "user_id": "user_003",
+    "account_id": "la_user_003_01",
+    "month": "2026-01",
+    "status": "on_time",
+    "amount_due": 240,
+    "amount_paid": 240,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_003_03_202602",
+    "user_id": "user_003",
+    "account_id": "la_user_003_01",
+    "month": "2026-02",
+    "status": "on_time",
+    "amount_due": 240,
+    "amount_paid": 240,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_003_03_202603",
+    "user_id": "user_003",
+    "account_id": "la_user_003_01",
+    "month": "2026-03",
+    "status": "on_time",
+    "amount_due": 240,
+    "amount_paid": 240,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_004_01_202510",
+    "user_id": "user_004",
+    "account_id": "ca_user_004_01",
+    "month": "2025-10",
+    "status": "on_time",
+    "amount_due": 160,
+    "amount_paid": 160,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_004_01_202511",
+    "user_id": "user_004",
+    "account_id": "ca_user_004_01",
+    "month": "2025-11",
+    "status": "on_time",
+    "amount_due": 160,
+    "amount_paid": 160,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_004_01_202512",
+    "user_id": "user_004",
+    "account_id": "ca_user_004_01",
+    "month": "2025-12",
+    "status": "on_time",
+    "amount_due": 160,
+    "amount_paid": 160,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_004_01_202601",
+    "user_id": "user_004",
+    "account_id": "ca_user_004_01",
+    "month": "2026-01",
+    "status": "on_time",
+    "amount_due": 160,
+    "amount_paid": 160,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_004_01_202602",
+    "user_id": "user_004",
+    "account_id": "ca_user_004_01",
+    "month": "2026-02",
+    "status": "on_time",
+    "amount_due": 160,
+    "amount_paid": 160,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_004_01_202603",
+    "user_id": "user_004",
+    "account_id": "ca_user_004_01",
+    "month": "2026-03",
+    "status": "on_time",
+    "amount_due": 160,
+    "amount_paid": 160,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_004_02_202510",
+    "user_id": "user_004",
+    "account_id": "la_user_004_01",
+    "month": "2025-10",
+    "status": "on_time",
+    "amount_due": 200,
+    "amount_paid": 200,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_004_02_202511",
+    "user_id": "user_004",
+    "account_id": "la_user_004_01",
+    "month": "2025-11",
+    "status": "on_time",
+    "amount_due": 200,
+    "amount_paid": 200,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_004_02_202512",
+    "user_id": "user_004",
+    "account_id": "la_user_004_01",
+    "month": "2025-12",
+    "status": "on_time",
+    "amount_due": 200,
+    "amount_paid": 200,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_004_02_202601",
+    "user_id": "user_004",
+    "account_id": "la_user_004_01",
+    "month": "2026-01",
+    "status": "on_time",
+    "amount_due": 200,
+    "amount_paid": 200,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_004_02_202602",
+    "user_id": "user_004",
+    "account_id": "la_user_004_01",
+    "month": "2026-02",
+    "status": "on_time",
+    "amount_due": 200,
+    "amount_paid": 200,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_004_02_202603",
+    "user_id": "user_004",
+    "account_id": "la_user_004_01",
+    "month": "2026-03",
+    "status": "on_time",
+    "amount_due": 200,
+    "amount_paid": 200,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_005_01_202510",
+    "user_id": "user_005",
+    "account_id": "ca_user_005_01",
+    "month": "2025-10",
+    "status": "on_time",
+    "amount_due": 160,
+    "amount_paid": 160,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_005_01_202511",
+    "user_id": "user_005",
+    "account_id": "ca_user_005_01",
+    "month": "2025-11",
+    "status": "on_time",
+    "amount_due": 160,
+    "amount_paid": 160,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_005_01_202512",
+    "user_id": "user_005",
+    "account_id": "ca_user_005_01",
+    "month": "2025-12",
+    "status": "on_time",
+    "amount_due": 160,
+    "amount_paid": 160,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_005_01_202601",
+    "user_id": "user_005",
+    "account_id": "ca_user_005_01",
+    "month": "2026-01",
+    "status": "on_time",
+    "amount_due": 160,
+    "amount_paid": 160,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_005_01_202602",
+    "user_id": "user_005",
+    "account_id": "ca_user_005_01",
+    "month": "2026-02",
+    "status": "on_time",
+    "amount_due": 160,
+    "amount_paid": 160,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_005_01_202603",
+    "user_id": "user_005",
+    "account_id": "ca_user_005_01",
+    "month": "2026-03",
+    "status": "on_time",
+    "amount_due": 160,
+    "amount_paid": 160,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_005_02_202510",
+    "user_id": "user_005",
+    "account_id": "ca_user_005_02",
+    "month": "2025-10",
+    "status": "on_time",
+    "amount_due": 200,
+    "amount_paid": 200,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_005_02_202511",
+    "user_id": "user_005",
+    "account_id": "ca_user_005_02",
+    "month": "2025-11",
+    "status": "on_time",
+    "amount_due": 200,
+    "amount_paid": 200,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_005_02_202512",
+    "user_id": "user_005",
+    "account_id": "ca_user_005_02",
+    "month": "2025-12",
+    "status": "on_time",
+    "amount_due": 200,
+    "amount_paid": 200,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_005_02_202601",
+    "user_id": "user_005",
+    "account_id": "ca_user_005_02",
+    "month": "2026-01",
+    "status": "on_time",
+    "amount_due": 200,
+    "amount_paid": 200,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_005_02_202602",
+    "user_id": "user_005",
+    "account_id": "ca_user_005_02",
+    "month": "2026-02",
+    "status": "on_time",
+    "amount_due": 200,
+    "amount_paid": 200,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_005_02_202603",
+    "user_id": "user_005",
+    "account_id": "ca_user_005_02",
+    "month": "2026-03",
+    "status": "on_time",
+    "amount_due": 200,
+    "amount_paid": 200,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_005_03_202510",
+    "user_id": "user_005",
+    "account_id": "ca_user_005_03",
+    "month": "2025-10",
+    "status": "on_time",
+    "amount_due": 240,
+    "amount_paid": 240,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_005_03_202511",
+    "user_id": "user_005",
+    "account_id": "ca_user_005_03",
+    "month": "2025-11",
+    "status": "on_time",
+    "amount_due": 240,
+    "amount_paid": 240,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_005_03_202512",
+    "user_id": "user_005",
+    "account_id": "ca_user_005_03",
+    "month": "2025-12",
+    "status": "on_time",
+    "amount_due": 240,
+    "amount_paid": 240,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_005_03_202601",
+    "user_id": "user_005",
+    "account_id": "ca_user_005_03",
+    "month": "2026-01",
+    "status": "on_time",
+    "amount_due": 240,
+    "amount_paid": 240,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_005_03_202602",
+    "user_id": "user_005",
+    "account_id": "ca_user_005_03",
+    "month": "2026-02",
+    "status": "on_time",
+    "amount_due": 240,
+    "amount_paid": 240,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_005_03_202603",
+    "user_id": "user_005",
+    "account_id": "ca_user_005_03",
+    "month": "2026-03",
+    "status": "on_time",
+    "amount_due": 240,
+    "amount_paid": 240,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_005_04_202510",
+    "user_id": "user_005",
+    "account_id": "la_user_005_01",
+    "month": "2025-10",
+    "status": "on_time",
+    "amount_due": 280,
+    "amount_paid": 280,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_005_04_202511",
+    "user_id": "user_005",
+    "account_id": "la_user_005_01",
+    "month": "2025-11",
+    "status": "on_time",
+    "amount_due": 280,
+    "amount_paid": 280,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_005_04_202512",
+    "user_id": "user_005",
+    "account_id": "la_user_005_01",
+    "month": "2025-12",
+    "status": "on_time",
+    "amount_due": 280,
+    "amount_paid": 280,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_005_04_202601",
+    "user_id": "user_005",
+    "account_id": "la_user_005_01",
+    "month": "2026-01",
+    "status": "on_time",
+    "amount_due": 280,
+    "amount_paid": 280,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_005_04_202602",
+    "user_id": "user_005",
+    "account_id": "la_user_005_01",
+    "month": "2026-02",
+    "status": "on_time",
+    "amount_due": 280,
+    "amount_paid": 280,
+    "days_late": 0
+  },
+  {
+    "payment_id": "ph_user_005_04_202603",
+    "user_id": "user_005",
+    "account_id": "la_user_005_01",
+    "month": "2026-03",
+    "status": "on_time",
+    "amount_due": 280,
+    "amount_paid": 280,
+    "days_late": 0
+  }
+]
