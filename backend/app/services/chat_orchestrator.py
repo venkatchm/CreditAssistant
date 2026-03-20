@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Iterator
 
 from app.schemas.chat import ChatResponse
 from app.services.agent_orchestrator import AgentOrchestrator
@@ -32,3 +33,9 @@ class ChatOrchestrator:
             execution.trace.retrieval_used,
         )
         return execution.response
+
+    def stream_response(self, user_id: str, message: str) -> Iterator[str]:
+        analysis = self.query_analyzer.analyze(message)
+        gateway_request, _ = self.agent_orchestrator.build_gateway_request(user_id=user_id, message=message, analysis=analysis)
+        for chunk in self.agent_orchestrator.response_composer.model_gateway.stream(gateway_request):
+            yield chunk

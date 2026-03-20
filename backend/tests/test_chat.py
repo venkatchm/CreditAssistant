@@ -83,6 +83,22 @@ class ChatResponseTests(unittest.TestCase):
         self.assertIn("available revolving credit", payload["message"].lower())
         self.assertGreater(len(payload["cards"]), 0)
 
+    def test_streaming_chat_response_returns_text_stream(self) -> None:
+        print("\n[chat] testing streaming chat flow")
+        with self.client.stream(
+            "POST",
+            "/chat",
+            json={"user_id": "user_001", "message": "What is credit utilization?", "stream": True},
+        ) as response:
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.headers["content-type"].split(";")[0], "text/event-stream")
+            body = "".join(chunk for chunk in response.iter_text())
+        print(f"[chat] streamed_body={body}")
+        self.assertIn("event: start", body)
+        self.assertIn("event: data", body)
+        self.assertIn("event: end", body)
+        self.assertIn("credit utilization", body.lower())
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -11,6 +11,7 @@ from typing import Iterator
 from uuid import uuid4
 
 from app.retrieval.models import ChunkedDocument, RetrievedChunk, SourceDocument
+from app.retrieval.persistence import RetrievalPersistenceBackend
 
 
 def utc_now_iso() -> str:
@@ -41,7 +42,7 @@ class RetrievalDatabase:
             connection.executescript(sql)
 
 
-class RetrievalPersistence:
+class RetrievalPersistence(RetrievalPersistenceBackend):
     def __init__(self, database: RetrievalDatabase, embedding_model: str) -> None:
         self.database = database
         self.embedding_model = embedding_model
@@ -234,6 +235,11 @@ class RetrievalPersistence:
                 )
             )
         return results
+
+    def has_indexed_chunks(self) -> bool:
+        with self.database.connect() as connection:
+            row = connection.execute("SELECT COUNT(*) AS count FROM retrieval_chunks").fetchone()
+        return bool(row and row["count"] > 0)
 
 
 def build_search_text(chunk: ChunkedDocument) -> str:

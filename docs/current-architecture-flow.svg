@@ -1,0 +1,127 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1080" viewBox="0 0 1600 1080">
+  <defs>
+    <style>
+      .title { font: 700 30px Arial, sans-serif; fill: #17324d; }
+      .subtitle { font: 400 16px Arial, sans-serif; fill: #4a5b6a; }
+      .label { font: 700 18px Arial, sans-serif; fill: #17324d; }
+      .text { font: 400 15px Arial, sans-serif; fill: #243746; }
+      .small { font: 400 14px Arial, sans-serif; fill: #4a5b6a; }
+      .box { stroke: #224c6b; stroke-width: 2; rx: 14; ry: 14; }
+      .api { fill: #e7f1fb; }
+      .orchestrator { fill: #eef8ef; }
+      .tools { fill: #fff4df; }
+      .retrieval { fill: #f6ebff; }
+      .model { fill: #fdecef; }
+      .data { fill: #eef1f4; }
+      .arrow { stroke: #355c7d; stroke-width: 3; fill: none; marker-end: url(#arrowhead); }
+      .dashed { stroke-dasharray: 10 8; }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#355c7d" />
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1600" height="1080" fill="#fbfcfe" />
+
+  <text x="60" y="60" class="title">CreditAssistant Current Architecture Flow</text>
+  <text x="60" y="92" class="subtitle">FastAPI + rule-based planning + tool-augmented RAG + optional SSE streaming</text>
+
+  <rect x="60" y="150" width="250" height="80" class="box api" />
+  <text x="85" y="185" class="label">Client</text>
+  <text x="85" y="212" class="text">POST /chat</text>
+
+  <rect x="380" y="130" width="320" height="120" class="box api" />
+  <text x="405" y="165" class="label">FastAPI Routes</text>
+  <text x="405" y="192" class="text">app/api/routes/chat.py</text>
+  <text x="405" y="216" class="small">If stream=true, returns text/event-stream</text>
+
+  <rect x="770" y="130" width="340" height="120" class="box orchestrator" />
+  <text x="795" y="165" class="label">ChatOrchestrator</text>
+  <text x="795" y="192" class="text">query_analyzer.analyze(message)</text>
+  <text x="795" y="216" class="text">agent_orchestrator.execute(...)</text>
+
+  <rect x="1180" y="130" width="320" height="120" class="box orchestrator" />
+  <text x="1205" y="165" class="label">QueryAnalyzer</text>
+  <text x="1205" y="192" class="text">Classifies message into:</text>
+  <text x="1205" y="216" class="small">SIMPLE_FACT / SIMPLE_RECOMMENDATION /</text>
+  <text x="1205" y="236" class="small">COMPLEX_EXPLANATION / GENERAL_KNOWLEDGE</text>
+
+  <rect x="770" y="320" width="340" height="140" class="box orchestrator" />
+  <text x="795" y="355" class="label">AgentOrchestrator</text>
+  <text x="795" y="382" class="text">Builds plan + trace</text>
+  <text x="795" y="406" class="text">Runs tools and/or retrieval</text>
+  <text x="795" y="430" class="text">Builds evidence and composes response</text>
+
+  <rect x="1180" y="320" width="320" height="140" class="box orchestrator" />
+  <text x="1205" y="355" class="label">ExecutionPlanner</text>
+  <text x="1205" y="382" class="text">Rule-based plan selection</text>
+  <text x="1205" y="406" class="small">Fixed tool lists by category</text>
+  <text x="1205" y="430" class="small">Retrieval enabled for knowledge/explanations</text>
+
+  <rect x="120" y="560" width="360" height="210" class="box tools" />
+  <text x="145" y="595" class="label">ToolRegistry + Credit Tools</text>
+  <text x="145" y="622" class="text">get_credit_profile</text>
+  <text x="145" y="646" class="text">get_credit_metrics</text>
+  <text x="145" y="670" class="text">get_recommendations</text>
+  <text x="145" y="694" class="text">get_inquiries</text>
+  <text x="145" y="718" class="text">get_payment_history</text>
+  <text x="145" y="748" class="small">Backed by service layer + JsonCreditRepository</text>
+
+  <rect x="560" y="560" width="330" height="210" class="box retrieval" />
+  <text x="585" y="595" class="label">RagService</text>
+  <text x="585" y="622" class="text">Hybrid retrieval over knowledge.json</text>
+  <text x="585" y="646" class="text">SQLite by default</text>
+  <text x="585" y="670" class="text">Postgres/pgvector optional</text>
+  <text x="585" y="700" class="small">PersistentHybridRetriever</text>
+  <text x="585" y="724" class="small">Embedding + lexical search + reranking</text>
+
+  <rect x="970" y="560" width="360" height="210" class="box orchestrator" />
+  <text x="995" y="595" class="label">EvidenceBuilder</text>
+  <text x="995" y="622" class="text">Merges tool outputs + retrieval results</text>
+  <text x="995" y="646" class="text">Creates normalized evidence items</text>
+  <text x="995" y="670" class="text">Checks sufficiency for explanations</text>
+
+  <rect x="1360" y="560" width="180" height="210" class="box model" />
+  <text x="1385" y="595" class="label">ModelGateway</text>
+  <text x="1385" y="622" class="text">Local</text>
+  <text x="1385" y="646" class="text">Remote</text>
+  <text x="1385" y="670" class="text">OpenAI</text>
+  <text x="1385" y="700" class="small">Current local path is mostly deterministic</text>
+
+  <rect x="970" y="830" width="570" height="160" class="box model" />
+  <text x="995" y="865" class="label">GroundedResponseComposer</text>
+  <text x="995" y="892" class="text">Creates ChatResponse: message, cards, explanation, category</text>
+  <text x="995" y="916" class="text">Simple fact/recommendation paths are mostly template-driven</text>
+  <text x="995" y="940" class="text">Knowledge and explanation paths can call ModelGateway</text>
+
+  <rect x="120" y="830" width="770" height="160" class="box data" />
+  <text x="145" y="865" class="label">Data Sources</text>
+  <text x="145" y="892" class="text">backend/data/*.json: users, credit reports, metrics, inquiries, payment history, recommendations</text>
+  <text x="145" y="916" class="text">backend/data/knowledge.json: educational credit content</text>
+  <text x="145" y="940" class="text">backend/data/retrieval.sqlite3 or Postgres retrieval store</text>
+
+  <path d="M310 190 L380 190" class="arrow" />
+  <path d="M700 190 L770 190" class="arrow" />
+  <path d="M1110 190 L1180 190" class="arrow" />
+  <path d="M940 250 L940 320" class="arrow" />
+  <path d="M1110 390 L1180 390" class="arrow" />
+
+  <path d="M820 460 L420 560" class="arrow" />
+  <path d="M875 460 L725 560" class="arrow" />
+  <path d="M1000 460 L1100 560" class="arrow" />
+
+  <path d="M480 665 L970 665" class="arrow dashed" />
+  <path d="M890 665 L970 665" class="arrow" />
+  <path d="M1330 665 L1360 665" class="arrow" />
+  <path d="M1450 770 L1450 830" class="arrow" />
+  <path d="M1250 770 L1250 830" class="arrow" />
+
+  <path d="M300 770 L300 830" class="arrow" />
+  <path d="M720 770 L720 830" class="arrow" />
+
+  <path d="M970 910 L700 910" class="arrow dashed" />
+  <text x="610" y="900" class="small">Final ChatResponse</text>
+
+  <rect x="60" y="1015" width="1480" height="40" fill="#eef3f7" stroke="#d8e0e8" />
+  <text x="80" y="1041" class="small">Streaming path: /chat with stream=true builds a gateway request, calls ModelGateway.stream(), then wraps chunks into SSE start/data/end events in app/services/streaming.py</text>
+</svg>

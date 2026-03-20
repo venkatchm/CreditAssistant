@@ -1,6 +1,14 @@
 from __future__ import annotations
 
-from app.gateway.model_gateway import LocalModelGateway
+from app.core.settings import get_settings
+from app.gateway.model_gateway import (
+    LocalModelGateway,
+    ModelGateway,
+    OpenAIModelGateway,
+    OpenAIModelGatewayConfig,
+    RemoteModelGateway,
+    RemoteModelGatewayConfig,
+)
 from app.repositories.base import CreditRepository
 from app.repositories.json_credit_repository import JsonCreditRepository
 from app.services.agent_orchestrator import AgentOrchestrator
@@ -69,7 +77,32 @@ def get_evidence_builder() -> EvidenceBuilder:
 
 
 def get_grounded_response_composer() -> GroundedResponseComposer:
-    return GroundedResponseComposer(model_gateway=LocalModelGateway())
+    return GroundedResponseComposer(model_gateway=get_model_gateway())
+
+
+def get_model_gateway() -> ModelGateway:
+    settings = get_settings()
+    if settings.model_backend == "openai":
+        if not settings.openai_api_key:
+            raise RuntimeError("OPENAI_API_KEY is required when MODEL_BACKEND=openai.")
+        return OpenAIModelGateway(
+            OpenAIModelGatewayConfig(
+                api_key=settings.openai_api_key,
+                model=settings.openai_model or "gpt-5",
+                base_url=settings.openai_base_url,
+            )
+        )
+    if settings.model_backend == "remote":
+        if not settings.model_base_url:
+            raise RuntimeError("MODEL_BASE_URL is required when MODEL_BACKEND=remote.")
+        return RemoteModelGateway(
+            RemoteModelGatewayConfig(
+                base_url=settings.model_base_url,
+                api_key=settings.model_api_key,
+                model_name=settings.model_name,
+            )
+        )
+    return LocalModelGateway()
 
 
 def get_tool_registry() -> ToolRegistry:

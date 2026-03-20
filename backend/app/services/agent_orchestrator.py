@@ -4,6 +4,7 @@ import logging
 from time import perf_counter
 from uuid import uuid4
 
+from app.gateway.model_gateway import ModelGatewayRequest
 from app.schemas.chat import (
     AgentExecutionResult,
     ClassificationResult,
@@ -130,6 +131,26 @@ class AgentOrchestrator:
     def get_last_trace(self) -> TraceContext | None:
         return self._last_trace
 
+    def build_gateway_request(self, user_id: str, message: str, analysis: ClassificationResult) -> tuple[ModelGatewayRequest, ExecutionPlan]:
+        plan = self.planner.build_plan(analysis=analysis, message=message)
+        tool_results: dict[str, ToolResult] = {}
+        retrieval_result: RetrievalResult | None = None
+        for tool_name in plan.tool_names:
+            tool_results[tool_name] = self._run_tool(tool_name=tool_name, user_id=user_id, trace=self._stream_trace(plan, user_id))
+        if plan.retrieval_needed:
+            retrieval_result = self.rag_service.search_knowledge(plan.retrieval_query or message)
+        evidence = self.evidence_builder.build(tool_results=tool_results, retrieval_result=retrieval_result)
+        return (
+            self.response_composer.build_gateway_request(
+                plan=plan,
+                user_message=message,
+                tool_results=tool_results,
+                retrieval_result=retrieval_result,
+                evidence=evidence,
+            ),
+            plan,
+        )
+
     def _run_tool(self, tool_name: str, user_id: str, trace: TraceContext) -> ToolResult:
         definition = self.tool_registry.get(tool_name)
         started_at = perf_counter()
@@ -173,3 +194,12 @@ class AgentOrchestrator:
             )
         )
         return retrieval_result
+
+    def _stream_trace(self, plan: ExecutionPlan, user_id: str) -> TraceContext:
+        return TraceContext(
+            trace_id=str(uuid4()),
+            user_id=user_id,
+            query_type=plan.query_type,
+            execution_mode=plan.execution_mode,
+            response_strategy=plan.response_strategy,
+        )

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Iterable
 
-from app.gateway.model_gateway import GeneratedAnswerPayload, ModelGateway
+from app.gateway.model_gateway import ModelGateway, ModelGatewayRequest
 from app.schemas.chat import (
     ChatCard,
     ChatExplanation,
@@ -164,11 +164,13 @@ class GroundedResponseComposer:
     ) -> GroundedAnswer:
         documents = retrieval_result.documents if retrieval_result else []
         generated = self.model_gateway.generate(
-            plan=plan,
-            user_message=user_message,
-            evidence=evidence,
-            tool_context={},
-            retrieval_context=[document.snippet for document in documents],
+            ModelGatewayRequest(
+                plan=plan,
+                user_message=user_message,
+                evidence=evidence,
+                retrieval_context=[document.snippet for document in documents],
+                grounding_rules=self._grounding_rules(),
+            )
         )
         cards = [
             ChatCard(
@@ -255,15 +257,18 @@ class GroundedResponseComposer:
             message += " Recent hard inquiries are also part of the grounded evidence."
 
         generated = self.model_gateway.generate(
-            plan=plan,
-            user_message=user_message,
-            evidence=evidence,
-            tool_context={
-                "get_credit_profile": profile,
-                "get_credit_metrics": metrics,
-                "get_recommendations": recommendations,
-            },
-            retrieval_context=[document.snippet for document in (retrieval_result.documents if retrieval_result else [])],
+            ModelGatewayRequest(
+                plan=plan,
+                user_message=user_message,
+                evidence=evidence,
+                tool_context={
+                    "get_credit_profile": profile.model_dump(mode="json"),
+                    "get_credit_metrics": metrics.model_dump(mode="json"),
+                    "get_recommendations": [item.model_dump(mode="json") for item in recommendations],
+                },
+                retrieval_context=[document.snippet for document in (retrieval_result.documents if retrieval_result else [])],
+                grounding_rules=self._grounding_rules(),
+            )
         )
         explanation = ChatExplanation(
             causes=generated.causes or causes[:4],
@@ -279,6 +284,30 @@ class GroundedResponseComposer:
             requires_disclaimer=True if plan.query_type != "UNSUPPORTED" else False,
             category=plan.query_type,
             explanation=answer.explanation,
+        )
+
+    def build_gateway_request(
+        self,
+        plan: ExecutionPlan,
+        user_message: str,
+        tool_results: dict[str, ToolResult],
+        retrieval_result: RetrievalResult | None,
+        evidence: list[EvidenceItem],
+    ) -> ModelGatewayRequest:
+        recommendations = tool_results.get("get_recommendations")
+        profile = tool_results.get("get_credit_profile")
+        metrics = tool_results.get("get_credit_metrics")
+        return ModelGatewayRequest(
+            plan=plan,
+            user_message=user_message,
+            evidence=evidence,
+            tool_context={
+                "get_credit_profile": profile.payload.model_dump(mode="json") if profile else {},
+                "get_credit_metrics": metrics.payload.metrics.model_dump(mode="json") if metrics else {},
+                "get_recommendations": [item.model_dump(mode="json") for item in recommendations.payload.recommendations] if recommendations else [],
+            },
+            retrieval_context=[document.snippet for document in (retrieval_result.documents if retrieval_result else [])],
+            grounding_rules=self._grounding_rules(),
         )
 
     def _dedupe_texts(self, texts: Iterable[str]) -> list[str]:
@@ -311,3 +340,11 @@ class GroundedResponseComposer:
     def _factor_title(self, factor: str) -> str:
         words = factor.rstrip(".").split()
         return " ".join(words[:4]).title()
+
+    def _grounding_rules(self) -> list[str]:
+        return [
+            "Personal credit facts must come from tool results, not retrieved documents.",
+            "Educational credit explanations may use retrieved documents.",
+            "Do not make claims that are unsupported by provided evidence.",
+            "Prefer concise, grounded explanations with actionable next steps.",
+        ]

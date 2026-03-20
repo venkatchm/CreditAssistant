@@ -17,6 +17,7 @@ ChatCategory = Literal[
 class ChatRequest(BaseModel):
     user_id: str
     message: str
+    stream: bool = False
 
 
 class ChatCard(BaseModel):
@@ -142,3 +143,11 @@ class GroundedAnswer(BaseModel):
     cards: List[ChatCard] = Field(default_factory=list)
     explanation: Optional[ChatExplanation] = None
     evidence: List[EvidenceItem] = Field(default_factory=list)
+
+
+StreamEventName = Literal["start", "data", "end", "error"]
+
+
+class StreamEvent(BaseModel):
+    event: StreamEventName
+    data: dict[str, Any] = Field(default_factory=dict)
