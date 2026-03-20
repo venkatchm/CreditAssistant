@@ -15,7 +15,7 @@ from app.gateway.model_gateway import (
     fallback_generated_payload,
     normalize_generated_payload,
 )
-from app.schemas.chat import EvidenceItem, ExecutionPlan
+from app.schemas.chat import AgentAction, EvidenceItem, ExecutionPlan
 
 
 class ModelGatewayTests(unittest.TestCase):
@@ -72,6 +72,47 @@ class ModelGatewayTests(unittest.TestCase):
         self.assertGreater(len(result.causes), 0)
         self.assertGreater(len(result.evidence), 0)
         self.assertGreater(len(result.suggested_actions), 0)
+
+    def test_local_gateway_decides_next_action_from_remaining_steps(self) -> None:
+        gateway = LocalModelGateway()
+        payload = ModelGatewayRequest(
+            plan=ExecutionPlan(
+                query_type="COMPLEX_EXPLANATION",
+                execution_mode="COMPLEX_EXPLANATION",
+                steps=[],
+                tool_names=["get_credit_profile", "get_credit_metrics"],
+                retrieval_needed=True,
+                retrieval_query="Why did my credit score drop?",
+                response_strategy="tool_and_retrieval_grounded_explanation",
+                max_iterations=2,
+            ),
+            user_message="Why did my credit score drop?",
+        )
+        action = gateway.decide_action(
+            payload=payload,
+            available_tools=["get_credit_profile", "get_credit_metrics"],
+            completed_tools=["get_credit_profile"],
+            retrieval_done=False,
+        )
+        self.assertIsInstance(action, AgentAction)
+        self.assertEqual(action.action, "tool_call")
+        self.assertEqual(action.tool_name, "get_credit_metrics")
+
+        retrieval_action = gateway.decide_action(
+            payload=payload,
+            available_tools=["get_credit_profile", "get_credit_metrics"],
+            completed_tools=["get_credit_profile", "get_credit_metrics"],
+            retrieval_done=False,
+        )
+        self.assertEqual(retrieval_action.action, "retrieve")
+
+        answer_action = gateway.decide_action(
+            payload=payload,
+            available_tools=["get_credit_profile", "get_credit_metrics"],
+            completed_tools=["get_credit_profile", "get_credit_metrics"],
+            retrieval_done=True,
+        )
+        self.assertEqual(answer_action.action, "answer")
 
     @patch("app.gateway.model_gateway.request.urlopen")
     def test_remote_gateway_posts_structured_payload(self, mock_urlopen: MagicMock) -> None:

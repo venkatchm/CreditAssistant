@@ -5,8 +5,9 @@ from time import perf_counter
 from typing import Callable
 from uuid import uuid4
 
-from app.gateway.model_gateway import ModelGatewayRequest
+from app.gateway.model_gateway import LocalModelGateway, ModelGatewayRequest
 from app.schemas.chat import (
+    AgentAction,
     AgentExecutionResult,
     ClassificationResult,
     ExecutionPlan,
@@ -152,39 +153,12 @@ class AgentOrchestrator:
                     "response_strategy": plan.response_strategy,
                 },
             )
-        tool_results: dict[str, ToolResult] = {}
-        retrieval_result: RetrievalResult | None = None
-        trace = self._stream_trace(plan, user_id)
-        for tool_name in plan.tool_names:
-            if emit_event is not None:
-                emit_event("tool_start", {"tool_name": tool_name})
-            tool_results[tool_name] = self._run_tool(tool_name=tool_name, user_id=user_id, trace=trace)
-            if emit_event is not None:
-                tool_result = tool_results[tool_name]
-                emit_event(
-                    "tool_result",
-                    {
-                        "tool_name": tool_name,
-                        "source": tool_result.source,
-                        "summary": tool_result.payload_summary,
-                        "evidence": tool_result.evidence,
-                    },
-                )
-        if plan.retrieval_needed:
-            retrieval_query = plan.retrieval_query or message
-            if emit_event is not None:
-                emit_event("retrieval_start", {"query": retrieval_query})
-            retrieval_result = self._run_retrieval(retrieval_query, trace)
-            if emit_event is not None:
-                emit_event(
-                    "retrieval_result",
-                    {
-                        "query": retrieval_result.query,
-                        "used": retrieval_result.used,
-                        "top_confidence": retrieval_result.top_confidence,
-                        "document_titles": [document.title for document in retrieval_result.documents],
-                    },
-                )
+        tool_results, retrieval_result, trace = self._execute_action_loop(
+            user_id=user_id,
+            message=message,
+            plan=plan,
+            emit_event=emit_event,
+        )
         evidence = self.evidence_builder.build(tool_results=tool_results, retrieval_result=retrieval_result)
         if emit_event is not None:
             emit_event(
@@ -206,6 +180,92 @@ class AgentOrchestrator:
             ),
             plan,
         )
+
+    def _execute_action_loop(
+        self,
+        user_id: str,
+        message: str,
+        plan: ExecutionPlan,
+        emit_event: Callable[[str, dict[str, object]], None] | None = None,
+    ) -> tuple[dict[str, ToolResult], RetrievalResult | None, TraceContext]:
+        tool_results: dict[str, ToolResult] = {}
+        retrieval_result: RetrievalResult | None = None
+        trace = self._stream_trace(plan, user_id)
+        gateway = self._decision_gateway()
+        payload = ModelGatewayRequest(plan=plan, user_message=message)
+        max_steps = max(1, len(plan.tool_names) + (1 if plan.retrieval_needed else 0) + 1)
+
+        for _ in range(max_steps):
+            action = gateway.decide_action(
+                payload=payload,
+                available_tools=plan.tool_names,
+                completed_tools=list(tool_results.keys()),
+                retrieval_done=retrieval_result is not None,
+            )
+            if action.action == "tool_call" and action.tool_name:
+                if emit_event is not None:
+                    emit_event("tool_start", {"tool_name": action.tool_name, "reasoning": action.reasoning})
+                tool_result = self._run_tool(tool_name=action.tool_name, user_id=user_id, trace=trace)
+                tool_results[action.tool_name] = tool_result
+                if emit_event is not None:
+                    emit_event(
+                        "tool_result",
+                        {
+                            "tool_name": action.tool_name,
+                            "source": tool_result.source,
+                            "summary": tool_result.payload_summary,
+                            "evidence": tool_result.evidence,
+                        },
+                    )
+                payload = self._refresh_gateway_payload(payload, tool_results, retrieval_result)
+                continue
+            if action.action == "retrieve":
+                retrieval_query = action.query or plan.retrieval_query or message
+                if emit_event is not None:
+                    emit_event("retrieval_start", {"query": retrieval_query, "reasoning": action.reasoning})
+                retrieval_result = self._run_retrieval(retrieval_query, trace)
+                if emit_event is not None:
+                    emit_event(
+                        "retrieval_result",
+                        {
+                            "query": retrieval_result.query,
+                            "used": retrieval_result.used,
+                            "top_confidence": retrieval_result.top_confidence,
+                            "document_titles": [document.title for document in retrieval_result.documents],
+                        },
+                    )
+                payload = self._refresh_gateway_payload(payload, tool_results, retrieval_result)
+                continue
+            break
+
+        return tool_results, retrieval_result, trace
+
+    def _refresh_gateway_payload(
+        self,
+        payload: ModelGatewayRequest,
+        tool_results: dict[str, ToolResult],
+        retrieval_result: RetrievalResult | None,
+    ) -> ModelGatewayRequest:
+        evidence = self.evidence_builder.build(tool_results=tool_results, retrieval_result=retrieval_result)
+        return ModelGatewayRequest(
+            plan=payload.plan,
+            user_message=payload.user_message,
+            conversation_history=payload.conversation_history,
+            user_attributes=payload.user_attributes,
+            evidence=evidence,
+            tool_context={
+                tool_name: result.payload.model_dump(mode="json") if hasattr(result.payload, "model_dump") else result.payload
+                for tool_name, result in tool_results.items()
+            },
+            retrieval_context=[document.snippet for document in retrieval_result.documents] if retrieval_result else [],
+            grounding_rules=payload.grounding_rules,
+        )
+
+    def _decision_gateway(self):
+        gateway = self.response_composer.model_gateway
+        if hasattr(gateway, "decide_action"):
+            return gateway
+        return LocalModelGateway()
 
     def _run_tool(self, tool_name: str, user_id: str, trace: TraceContext) -> ToolResult:
         definition = self.tool_registry.get(tool_name)

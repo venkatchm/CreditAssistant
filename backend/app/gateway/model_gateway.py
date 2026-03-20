@@ -7,7 +7,7 @@ from urllib import error, request
 
 from pydantic import BaseModel, Field
 
-from app.schemas.chat import EvidenceItem, ExecutionPlan
+from app.schemas.chat import AgentAction, EvidenceItem, ExecutionPlan
 
 try:
     from openai import OpenAI
@@ -44,8 +44,39 @@ class ModelGateway(ABC):
     def stream(self, payload: ModelGatewayRequest):
         raise NotImplementedError
 
+    def decide_action(
+        self,
+        payload: ModelGatewayRequest,
+        available_tools: list[str],
+        completed_tools: list[str],
+        retrieval_done: bool,
+    ) -> AgentAction:
+        raise NotImplementedError
+
 
 class LocalModelGateway(ModelGateway):
+    def decide_action(
+        self,
+        payload: ModelGatewayRequest,
+        available_tools: list[str],
+        completed_tools: list[str],
+        retrieval_done: bool,
+    ) -> AgentAction:
+        for tool_name in available_tools:
+            if tool_name not in completed_tools:
+                return AgentAction(
+                    action="tool_call",
+                    tool_name=tool_name,
+                    reasoning=f"Need grounded tool evidence from {tool_name} before answering.",
+                )
+        if payload.plan.retrieval_needed and not retrieval_done:
+            return AgentAction(
+                action="retrieve",
+                query=payload.plan.retrieval_query or payload.user_message,
+                reasoning="Need educational retrieval evidence before answering.",
+            )
+        return AgentAction(action="answer", reasoning="Sufficient evidence gathered for grounded answer.")
+
     def generate(
         self,
         payload: ModelGatewayRequest,
@@ -132,6 +163,15 @@ class RemoteModelGateway(ModelGateway):
         result = self._request(payload)
         yield result.message
 
+    def decide_action(
+        self,
+        payload: ModelGatewayRequest,
+        available_tools: list[str],
+        completed_tools: list[str],
+        retrieval_done: bool,
+    ) -> AgentAction:
+        return LocalModelGateway().decide_action(payload, available_tools, completed_tools, retrieval_done)
+
     def _request(self, payload: ModelGatewayRequest) -> GeneratedAnswerPayload:
         body = {
             "model": self.config.model_name,
@@ -194,6 +234,15 @@ class OpenAIModelGateway(ModelGateway):
                 if delta:
                     collected_text_parts.append(delta)
                     yield delta
+
+    def decide_action(
+        self,
+        payload: ModelGatewayRequest,
+        available_tools: list[str],
+        completed_tools: list[str],
+        retrieval_done: bool,
+    ) -> AgentAction:
+        return LocalModelGateway().decide_action(payload, available_tools, completed_tools, retrieval_done)
 
     def _responses_create(self, payload: ModelGatewayRequest, stream: bool):
         return self.client.responses.create(

@@ -145,6 +145,16 @@ class GroundedAnswer(BaseModel):
     evidence: List[EvidenceItem] = Field(default_factory=list)
 
 
+AgentActionKind = Literal["tool_call", "retrieve", "answer"]
+
+
+class AgentAction(BaseModel):
+    action: AgentActionKind
+    tool_name: Optional[str] = None
+    query: Optional[str] = None
+    reasoning: str = ""
+
+
 StreamEventName = Literal[
     "start",
     "classification",
