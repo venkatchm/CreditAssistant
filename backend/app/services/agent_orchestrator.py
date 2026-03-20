@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from time import perf_counter
+from typing import Callable
 from uuid import uuid4
 
 from app.gateway.model_gateway import ModelGatewayRequest
@@ -131,15 +132,70 @@ class AgentOrchestrator:
     def get_last_trace(self) -> TraceContext | None:
         return self._last_trace
 
-    def build_gateway_request(self, user_id: str, message: str, analysis: ClassificationResult) -> tuple[ModelGatewayRequest, ExecutionPlan]:
+    def build_gateway_request(
+        self,
+        user_id: str,
+        message: str,
+        analysis: ClassificationResult,
+        emit_event: Callable[[str, dict[str, object]], None] | None = None,
+    ) -> tuple[ModelGatewayRequest, ExecutionPlan]:
         plan = self.planner.build_plan(analysis=analysis, message=message)
+        if emit_event is not None:
+            emit_event(
+                "plan",
+                {
+                    "query_type": plan.query_type,
+                    "execution_mode": plan.execution_mode,
+                    "tool_names": plan.tool_names,
+                    "retrieval_needed": plan.retrieval_needed,
+                    "max_iterations": plan.max_iterations,
+                    "response_strategy": plan.response_strategy,
+                },
+            )
         tool_results: dict[str, ToolResult] = {}
         retrieval_result: RetrievalResult | None = None
+        trace = self._stream_trace(plan, user_id)
         for tool_name in plan.tool_names:
-            tool_results[tool_name] = self._run_tool(tool_name=tool_name, user_id=user_id, trace=self._stream_trace(plan, user_id))
+            if emit_event is not None:
+                emit_event("tool_start", {"tool_name": tool_name})
+            tool_results[tool_name] = self._run_tool(tool_name=tool_name, user_id=user_id, trace=trace)
+            if emit_event is not None:
+                tool_result = tool_results[tool_name]
+                emit_event(
+                    "tool_result",
+                    {
+                        "tool_name": tool_name,
+                        "source": tool_result.source,
+                        "summary": tool_result.payload_summary,
+                        "evidence": tool_result.evidence,
+                    },
+                )
         if plan.retrieval_needed:
-            retrieval_result = self.rag_service.search_knowledge(plan.retrieval_query or message)
+            retrieval_query = plan.retrieval_query or message
+            if emit_event is not None:
+                emit_event("retrieval_start", {"query": retrieval_query})
+            retrieval_result = self._run_retrieval(retrieval_query, trace)
+            if emit_event is not None:
+                emit_event(
+                    "retrieval_result",
+                    {
+                        "query": retrieval_result.query,
+                        "used": retrieval_result.used,
+                        "top_confidence": retrieval_result.top_confidence,
+                        "document_titles": [document.title for document in retrieval_result.documents],
+                    },
+                )
         evidence = self.evidence_builder.build(tool_results=tool_results, retrieval_result=retrieval_result)
+        if emit_event is not None:
+            emit_event(
+                "compose",
+                {
+                    "query_type": plan.query_type,
+                    "evidence_count": len(evidence),
+                    "tool_calls": trace.tool_calls,
+                    "retrieval_used": retrieval_result.used if retrieval_result is not None else False,
+                },
+            )
         return (
             self.response_composer.build_gateway_request(
                 plan=plan,

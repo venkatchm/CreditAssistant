@@ -6,6 +6,7 @@ from typing import Iterator
 from app.schemas.chat import ChatResponse
 from app.services.agent_orchestrator import AgentOrchestrator
 from app.services.query_analyzer import QueryAnalyzer
+from app.services.streaming import build_end_event, build_progress_event, build_start_event, build_text_chunk_event
 
 
 logger = logging.getLogger(__name__)
@@ -35,7 +36,35 @@ class ChatOrchestrator:
         return execution.response
 
     def stream_response(self, user_id: str, message: str) -> Iterator[str]:
+        yield build_start_event()
         analysis = self.query_analyzer.analyze(message)
-        gateway_request, _ = self.agent_orchestrator.build_gateway_request(user_id=user_id, message=message, analysis=analysis)
+        yield build_progress_event(
+            "classification",
+            category=analysis.category,
+            normalized_message=analysis.normalized_message,
+        )
+        progress_events: list[str] = []
+
+        def emit_event(event_name: str, data: dict[str, object]) -> None:
+            progress_events.append(build_progress_event(event_name, **data))
+
+        gateway_request, plan = self.agent_orchestrator.build_gateway_request(
+            user_id=user_id,
+            message=message,
+            analysis=analysis,
+            emit_event=emit_event,
+        )
+        for event in progress_events:
+            yield event
+
+        chunk_index = 0
         for chunk in self.agent_orchestrator.response_composer.model_gateway.stream(gateway_request):
-            yield chunk
+            if not chunk:
+                continue
+            yield build_text_chunk_event(index=chunk_index, delta=chunk)
+            chunk_index += 1
+        yield build_end_event(
+            query_type=plan.query_type,
+            execution_mode=plan.execution_mode,
+            streamed_chunks=chunk_index,
+        )

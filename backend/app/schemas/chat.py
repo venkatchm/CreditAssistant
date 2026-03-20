@@ -145,7 +145,19 @@ class GroundedAnswer(BaseModel):
     evidence: List[EvidenceItem] = Field(default_factory=list)
 
 
-StreamEventName = Literal["start", "data", "end", "error"]
+StreamEventName = Literal[
+    "start",
+    "classification",
+    "plan",
+    "tool_start",
+    "tool_result",
+    "retrieval_start",
+    "retrieval_result",
+    "compose",
+    "data",
+    "end",
+    "error",
+]
 
 
 class StreamEvent(BaseModel):

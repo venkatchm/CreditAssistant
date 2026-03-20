@@ -5,7 +5,7 @@ from fastapi.responses import StreamingResponse
 
 from app.core.dependencies import get_chat_orchestrator
 from app.schemas.chat import ChatRequest, ChatResponse
-from app.services.streaming import build_error_event, build_text_stream_events
+from app.services.streaming import build_error_event
 from app.services.chat_orchestrator import ChatOrchestrator
 
 
@@ -17,9 +17,7 @@ def chat(payload: ChatRequest, orchestrator: ChatOrchestrator = Depends(get_chat
     if payload.stream:
         def event_stream():
             try:
-                yield from build_text_stream_events(
-                    orchestrator.stream_response(user_id=payload.user_id, message=payload.message)
-                )
+                yield from orchestrator.stream_response(user_id=payload.user_id, message=payload.message)
             except Exception as exc:  # pragma: no cover
                 yield build_error_event(str(exc))
 
