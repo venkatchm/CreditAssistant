@@ -13,11 +13,13 @@ from app.schemas.chat import (
     RetrievalResult,
     ToolResult,
 )
+from app.services.evidence_builder import EvidenceBuilder
 
 
 class GroundedResponseComposer:
-    def __init__(self, model_gateway: ModelGateway) -> None:
+    def __init__(self, model_gateway: ModelGateway, evidence_builder: EvidenceBuilder | None = None) -> None:
         self.model_gateway = model_gateway
+        self.evidence_builder = evidence_builder or EvidenceBuilder()
 
     def compose(
         self,
@@ -28,7 +30,7 @@ class GroundedResponseComposer:
         evidence: list[EvidenceItem],
     ) -> GroundedAnswer:
         if plan.query_type == "SIMPLE_FACT":
-            return self._compose_simple_fact(tool_results)
+            return self._compose_simple_fact(user_message, tool_results)
         if plan.query_type == "SIMPLE_RECOMMENDATION":
             return self._compose_recommendation(tool_results)
         if plan.query_type == "GENERAL_KNOWLEDGE":
@@ -41,8 +43,11 @@ class GroundedResponseComposer:
             evidence=evidence,
         )
 
-    def _compose_simple_fact(self, tool_results: dict[str, ToolResult]) -> GroundedAnswer:
+    def _compose_simple_fact(self, user_message: str, tool_results: dict[str, ToolResult]) -> GroundedAnswer:
+        normalized_message = user_message.lower()
         if "get_inquiries" in tool_results:
+            if "inquir" not in normalized_message and "get_credit_profile" in tool_results:
+                return self._compose_simple_fact_from_profile(tool_results)
             inquiries = tool_results["get_inquiries"].payload.inquiries
             source = tool_results["get_inquiries"].source
             cards = [
@@ -59,6 +64,8 @@ class GroundedResponseComposer:
                 cards=cards,
             )
         if "get_payment_history" in tool_results:
+            if "payment" not in normalized_message and "get_credit_profile" in tool_results:
+                return self._compose_simple_fact_from_profile(tool_results)
             history = tool_results["get_payment_history"].payload.payment_history
             source = tool_results["get_payment_history"].source
             cards = [
@@ -76,6 +83,8 @@ class GroundedResponseComposer:
                 cards=cards,
             )
         if "get_credit_metrics" in tool_results:
+            if "utilization" not in normalized_message and "available credit" not in normalized_message and "get_credit_profile" in tool_results:
+                return self._compose_simple_fact_from_profile(tool_results)
             metrics = tool_results["get_credit_metrics"].payload.metrics
             source = tool_results["get_credit_metrics"].source
             cards = [
@@ -100,6 +109,9 @@ class GroundedResponseComposer:
                 ),
                 cards=cards,
             )
+        return self._compose_simple_fact_from_profile(tool_results)
+
+    def _compose_simple_fact_from_profile(self, tool_results: dict[str, ToolResult]) -> GroundedAnswer:
         profile = tool_results["get_credit_profile"].payload
         source = tool_results["get_credit_profile"].source
         factors = self._dedupe_texts(profile.metrics.key_drivers[:3] + profile.credit_report.score_factors[:2])
@@ -163,6 +175,12 @@ class GroundedResponseComposer:
         evidence: list[EvidenceItem],
     ) -> GroundedAnswer:
         documents = retrieval_result.documents if retrieval_result else []
+        if not documents:
+            return GroundedAnswer(
+                message="I do not have enough grounded educational evidence to answer that confidently yet.",
+                cards=[],
+                evidence=evidence,
+            )
         generated = self.model_gateway.generate(
             ModelGatewayRequest(
                 plan=plan,
@@ -172,6 +190,7 @@ class GroundedResponseComposer:
                 grounding_rules=self._grounding_rules(),
             )
         )
+        grounded_message = generated.message if self._message_is_grounded(generated.message, evidence) else documents[0].snippet
         cards = [
             ChatCard(
                 type="knowledge",
@@ -185,7 +204,7 @@ class GroundedResponseComposer:
             )
             for document in documents
         ]
-        return GroundedAnswer(message=generated.message, cards=cards, evidence=evidence)
+        return GroundedAnswer(message=grounded_message, cards=cards, evidence=evidence)
 
     def _compose_complex_explanation(
         self,
@@ -195,6 +214,8 @@ class GroundedResponseComposer:
         retrieval_result: RetrievalResult | None,
         evidence: list[EvidenceItem],
     ) -> GroundedAnswer:
+        if not self.evidence_builder.is_sufficient_for_complex_explanation(evidence):
+            return self._insufficient_complex_explanation(tool_results=tool_results, evidence=evidence)
         profile = tool_results["get_credit_profile"].payload
         metrics = tool_results["get_credit_metrics"].payload.metrics
         recommendations = tool_results["get_recommendations"].payload.recommendations
@@ -270,12 +291,15 @@ class GroundedResponseComposer:
                 grounding_rules=self._grounding_rules(),
             )
         )
+        grounded_message = generated.message if self._message_is_grounded(generated.message, evidence) else message
+        grounded_evidence = self.evidence_builder.filter_supported_texts(generated.evidence, evidence) or evidence_lines[:6]
+        grounded_causes = self.evidence_builder.filter_supported_texts(generated.causes, evidence) or causes[:4]
         explanation = ChatExplanation(
-            causes=generated.causes or causes[:4],
-            evidence=generated.evidence or evidence_lines[:6],
+            causes=grounded_causes,
+            evidence=grounded_evidence,
             suggested_actions=generated.suggested_actions or [item.title for item in recommendations[:3]],
         )
-        return GroundedAnswer(message=generated.message or message, cards=cards, explanation=explanation, evidence=evidence)
+        return GroundedAnswer(message=grounded_message or message, cards=cards, explanation=explanation, evidence=evidence)
 
     def as_chat_response(self, plan: ExecutionPlan, answer: GroundedAnswer) -> ChatResponse:
         return ChatResponse(
@@ -347,4 +371,45 @@ class GroundedResponseComposer:
             "Educational credit explanations may use retrieved documents.",
             "Do not make claims that are unsupported by provided evidence.",
             "Prefer concise, grounded explanations with actionable next steps.",
+            "If evidence is insufficient, say so plainly instead of inventing details.",
         ]
+
+    def _insufficient_complex_explanation(
+        self,
+        tool_results: dict[str, ToolResult],
+        evidence: list[EvidenceItem],
+    ) -> GroundedAnswer:
+        recommendations = tool_results.get("get_recommendations")
+        cards: list[ChatCard] = []
+        suggested_actions: list[str] = []
+        if recommendations is not None:
+            for item in recommendations.payload.recommendations[:2]:
+                cards.append(
+                    ChatCard(
+                        type="recommendation",
+                        title=item.title,
+                        description=item.action,
+                        priority=self._labelize(item.priority),
+                        metadata={"source": recommendations.source},
+                    )
+                )
+                suggested_actions.append(item.title)
+        return GroundedAnswer(
+            message="I do not have enough grounded evidence yet to explain the score change confidently. I can only share the verified signals currently available.",
+            cards=cards,
+            explanation=ChatExplanation(
+                causes=[],
+                evidence=[item.detail for item in evidence[:4]],
+                suggested_actions=suggested_actions,
+            ),
+            evidence=evidence,
+        )
+
+    def _message_is_grounded(self, message: str, evidence: list[EvidenceItem]) -> bool:
+        if not message.strip():
+            return False
+        if not evidence:
+            return False
+        if "not enough grounded evidence" in message.lower():
+            return True
+        return self.evidence_builder.supports_text(message, evidence)

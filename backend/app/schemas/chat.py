@@ -145,7 +145,7 @@ class GroundedAnswer(BaseModel):
     evidence: List[EvidenceItem] = Field(default_factory=list)
 
 
-AgentActionKind = Literal["tool_call", "retrieve", "answer"]
+AgentActionKind = Literal["tool_call", "retrieve", "answer", "insufficient_evidence"]
 
 
 class AgentAction(BaseModel):

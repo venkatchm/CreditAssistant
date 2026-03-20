@@ -77,7 +77,10 @@ def get_evidence_builder() -> EvidenceBuilder:
 
 
 def get_grounded_response_composer() -> GroundedResponseComposer:
-    return GroundedResponseComposer(model_gateway=get_model_gateway())
+    return GroundedResponseComposer(
+        model_gateway=get_model_gateway(),
+        evidence_builder=get_evidence_builder(),
+    )
 
 
 def get_model_gateway() -> ModelGateway:

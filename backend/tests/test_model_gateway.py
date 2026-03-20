@@ -112,7 +112,81 @@ class ModelGatewayTests(unittest.TestCase):
             completed_tools=["get_credit_profile", "get_credit_metrics"],
             retrieval_done=True,
         )
-        self.assertEqual(answer_action.action, "answer")
+        self.assertEqual(answer_action.action, "retrieve")
+
+    def test_local_gateway_chooses_retrieval_for_general_knowledge_without_tools(self) -> None:
+        gateway = LocalModelGateway()
+        payload = ModelGatewayRequest(
+            plan=ExecutionPlan(
+                query_type="GENERAL_KNOWLEDGE",
+                execution_mode="KNOWLEDGE_ONLY",
+                steps=[],
+                tool_names=[],
+                retrieval_needed=True,
+                retrieval_query="What is credit utilization?",
+                response_strategy="retrieval_only_knowledge_response",
+                max_iterations=1,
+            ),
+            user_message="What is credit utilization?",
+        )
+        action = gateway.decide_action(
+            payload=payload,
+            available_tools=[],
+            completed_tools=[],
+            retrieval_done=False,
+        )
+        self.assertEqual(action.action, "retrieve")
+        self.assertIn("educational retrieval", action.reasoning.lower())
+
+    def test_local_gateway_stops_with_answer_after_retrieval_when_no_tools_are_needed(self) -> None:
+        gateway = LocalModelGateway()
+        payload = ModelGatewayRequest(
+            plan=ExecutionPlan(
+                query_type="GENERAL_KNOWLEDGE",
+                execution_mode="KNOWLEDGE_ONLY",
+                steps=[],
+                tool_names=[],
+                retrieval_needed=True,
+                retrieval_query="What is credit utilization?",
+                response_strategy="retrieval_only_knowledge_response",
+                max_iterations=1,
+            ),
+            user_message="What is credit utilization?",
+        )
+        action = gateway.decide_action(
+            payload=payload,
+            available_tools=[],
+            completed_tools=[],
+            retrieval_done=True,
+            retrieval_attempts=1,
+        )
+        self.assertEqual(action.action, "retrieve")
+
+    def test_local_gateway_marks_insufficient_evidence_after_bounded_knowledge_retries(self) -> None:
+        gateway = LocalModelGateway()
+        payload = ModelGatewayRequest(
+            plan=ExecutionPlan(
+                query_type="GENERAL_KNOWLEDGE",
+                execution_mode="KNOWLEDGE_ONLY",
+                steps=[],
+                tool_names=[],
+                retrieval_needed=True,
+                retrieval_query="What is credit utilization?",
+                response_strategy="retrieval_only_knowledge_response",
+                max_iterations=3,
+            ),
+            user_message="What is credit utilization?",
+            retrieval_context=[],
+        )
+        action = gateway.decide_action(
+            payload=payload,
+            available_tools=[],
+            completed_tools=[],
+            retrieval_done=True,
+            retrieval_attempts=2,
+            last_retrieval_confidence=0.0,
+        )
+        self.assertEqual(action.action, "insufficient_evidence")
 
     @patch("app.gateway.model_gateway.request.urlopen")
     def test_remote_gateway_posts_structured_payload(self, mock_urlopen: MagicMock) -> None:
@@ -197,6 +271,95 @@ class ModelGatewayTests(unittest.TestCase):
         mock_client.responses.create.assert_called_once()
         kwargs = mock_client.responses.create.call_args.kwargs
         self.assertEqual(kwargs["model"], "gpt-5")
+
+    @patch("app.gateway.model_gateway.OpenAI")
+    def test_openai_gateway_decides_action_from_structured_json(self, mock_openai_cls: MagicMock) -> None:
+        mock_client = MagicMock()
+        mock_client.responses.create.return_value = MagicMock(
+            output_text=json.dumps(
+                {
+                    "action": "tool_call",
+                    "tool_name": "get_credit_metrics",
+                    "query": None,
+                    "reasoning": "Need utilization and score movement details before answering.",
+                }
+            )
+        )
+        mock_openai_cls.return_value = mock_client
+
+        gateway = OpenAIModelGateway(
+            OpenAIModelGatewayConfig(
+                api_key="test-key",
+                model="gpt-5",
+            )
+        )
+        payload = ModelGatewayRequest(
+            plan=ExecutionPlan(
+                query_type="COMPLEX_EXPLANATION",
+                execution_mode="COMPLEX_EXPLANATION",
+                steps=[],
+                tool_names=["get_credit_profile", "get_credit_metrics"],
+                retrieval_needed=True,
+                retrieval_query="Why did my credit score drop?",
+                response_strategy="tool_and_retrieval_grounded_explanation",
+                max_iterations=2,
+            ),
+            user_message="Why did my credit score drop?",
+        )
+        action = gateway.decide_action(
+            payload=payload,
+            available_tools=["get_credit_profile", "get_credit_metrics"],
+            completed_tools=["get_credit_profile"],
+            retrieval_done=False,
+        )
+        self.assertEqual(action.action, "tool_call")
+        self.assertEqual(action.tool_name, "get_credit_metrics")
+        self.assertIn("utilization", action.reasoning.lower())
+        kwargs = mock_client.responses.create.call_args.kwargs
+        self.assertEqual(kwargs["model"], "gpt-5")
+        self.assertFalse(kwargs["stream"])
+
+    @patch("app.gateway.model_gateway.OpenAI")
+    def test_openai_gateway_falls_back_to_local_action_when_tool_is_invalid(self, mock_openai_cls: MagicMock) -> None:
+        mock_client = MagicMock()
+        mock_client.responses.create.return_value = MagicMock(
+            output_text=json.dumps(
+                {
+                    "action": "tool_call",
+                    "tool_name": "unsupported_tool",
+                    "reasoning": "Use another tool.",
+                }
+            )
+        )
+        mock_openai_cls.return_value = mock_client
+
+        gateway = OpenAIModelGateway(
+            OpenAIModelGatewayConfig(
+                api_key="test-key",
+                model="gpt-5",
+            )
+        )
+        payload = ModelGatewayRequest(
+            plan=ExecutionPlan(
+                query_type="SIMPLE_FACT",
+                execution_mode="FAST_FACT",
+                steps=[],
+                tool_names=["get_credit_profile"],
+                retrieval_needed=False,
+                retrieval_query=None,
+                response_strategy="tool_only_fact_response",
+                max_iterations=1,
+            ),
+            user_message="What is my credit score?",
+        )
+        action = gateway.decide_action(
+            payload=payload,
+            available_tools=["get_credit_profile"],
+            completed_tools=[],
+            retrieval_done=False,
+        )
+        self.assertEqual(action.action, "tool_call")
+        self.assertEqual(action.tool_name, "get_credit_profile")
 
     def test_normalize_generated_payload_prettifies_json_evidence(self) -> None:
         payload = ModelGatewayRequest(

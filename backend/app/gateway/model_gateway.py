@@ -50,6 +50,8 @@ class ModelGateway(ABC):
         available_tools: list[str],
         completed_tools: list[str],
         retrieval_done: bool,
+        retrieval_attempts: int = 0,
+        last_retrieval_confidence: float = 0.0,
     ) -> AgentAction:
         raise NotImplementedError
 
@@ -61,19 +63,63 @@ class LocalModelGateway(ModelGateway):
         available_tools: list[str],
         completed_tools: list[str],
         retrieval_done: bool,
+        retrieval_attempts: int = 0,
+        last_retrieval_confidence: float = 0.0,
     ) -> AgentAction:
-        for tool_name in available_tools:
-            if tool_name not in completed_tools:
+        pending_tools = [tool_name for tool_name in available_tools if tool_name not in completed_tools]
+        normalized_message = payload.user_message.lower()
+
+        if payload.plan.query_type == "GENERAL_KNOWLEDGE":
+            if not retrieval_done:
+                return AgentAction(
+                    action="retrieve",
+                    query=payload.plan.retrieval_query or payload.user_message,
+                    reasoning="Need educational retrieval evidence before answering.",
+                )
+            if not payload.retrieval_context and retrieval_attempts < 2:
+                return AgentAction(
+                    action="retrieve",
+                    query=self._refine_retrieval_query(payload.user_message, payload.evidence),
+                    reasoning="Initial retrieval was weak, so trying a refined educational query.",
+                )
+            if not payload.retrieval_context:
+                return AgentAction(
+                    action="insufficient_evidence",
+                    reasoning="Retrieval did not produce grounded educational evidence after bounded retries.",
+                )
+            return AgentAction(action="answer", reasoning="Sufficient educational evidence gathered for grounded answer.")
+
+        if pending_tools:
+            for tool_name in self._rank_tools(pending_tools, normalized_message, payload):
                 return AgentAction(
                     action="tool_call",
                     tool_name=tool_name,
                     reasoning=f"Need grounded tool evidence from {tool_name} before answering.",
                 )
-        if payload.plan.retrieval_needed and not retrieval_done:
+
+        if payload.plan.retrieval_needed and (not retrieval_done or (last_retrieval_confidence < 0.35 and retrieval_attempts < 2)):
             return AgentAction(
                 action="retrieve",
-                query=payload.plan.retrieval_query or payload.user_message,
-                reasoning="Need educational retrieval evidence before answering.",
+                query=(
+                    self._refine_retrieval_query(payload.user_message, payload.evidence)
+                    if retrieval_attempts > 0
+                    else payload.plan.retrieval_query or payload.user_message
+                ),
+                reasoning=(
+                    "Need educational retrieval evidence before answering."
+                    if retrieval_attempts == 0
+                    else "Refining retrieval query because the earlier search was weak."
+                ),
+            )
+        if payload.plan.query_type == "COMPLEX_EXPLANATION" and not payload.evidence:
+            return AgentAction(
+                action="insufficient_evidence",
+                reasoning="No grounded evidence was collected for the explanation request.",
+            )
+        if payload.plan.query_type == "COMPLEX_EXPLANATION" and not any(item.source_kind == "retrieval" for item in payload.evidence):
+            return AgentAction(
+                action="insufficient_evidence",
+                reasoning="Tool evidence exists, but retrieval grounding is still missing after bounded retries.",
             )
         return AgentAction(action="answer", reasoning="Sufficient evidence gathered for grounded answer.")
 
@@ -143,6 +189,41 @@ class LocalModelGateway(ModelGateway):
         result = self.generate(payload)
         yield result.message
 
+    def _rank_tools(self, pending_tools: list[str], normalized_message: str, payload: ModelGatewayRequest) -> list[str]:
+        scored: list[tuple[int, str]] = []
+        for tool_name in pending_tools:
+            score = 0
+            if payload.plan.query_type == "SIMPLE_FACT":
+                if tool_name == "get_credit_profile" and any(term in normalized_message for term in ["credit score", "score", "report", "profile"]):
+                    score += 8
+                if tool_name == "get_credit_metrics" and "utilization" in normalized_message:
+                    score += 8
+            if payload.plan.query_type == "SIMPLE_RECOMMENDATION":
+                if tool_name == "get_recommendations":
+                    score += 8
+                if tool_name == "get_credit_metrics":
+                    score += 4
+            if tool_name == "get_payment_history" and any(term in normalized_message for term in ["late", "payment", "delinquency", "missed", "drop"]):
+                score += 4
+            if tool_name == "get_inquiries" and any(term in normalized_message for term in ["inquiry", "application", "hard pull", "hard inquiry"]):
+                score += 4
+            if tool_name == "get_credit_metrics" and any(term in normalized_message for term in ["utilization", "drop", "change", "score"]):
+                score += 3
+            if tool_name == "get_credit_profile" and any(term in normalized_message for term in ["score", "profile", "report", "drop"]):
+                score += 3
+            if tool_name == "get_recommendations" and any(term in normalized_message for term in ["improve", "recommend", "what should i do", "next step"]):
+                score += 3
+            if tool_name in payload.tool_context:
+                score -= 10
+            scored.append((score, tool_name))
+        return [tool_name for _, tool_name in sorted(scored, key=lambda item: (-item[0], item[1]))]
+
+    def _refine_retrieval_query(self, user_message: str, evidence: list[EvidenceItem]) -> str:
+        evidence_terms = " ".join(item.title for item in evidence[:3])
+        if evidence_terms:
+            return f"{user_message} {evidence_terms} credit explanation education"
+        return f"{user_message} credit score factors payment history utilization inquiry explanation"
+
 
 @dataclass(frozen=True)
 class RemoteModelGatewayConfig:
@@ -169,8 +250,17 @@ class RemoteModelGateway(ModelGateway):
         available_tools: list[str],
         completed_tools: list[str],
         retrieval_done: bool,
+        retrieval_attempts: int = 0,
+        last_retrieval_confidence: float = 0.0,
     ) -> AgentAction:
-        return LocalModelGateway().decide_action(payload, available_tools, completed_tools, retrieval_done)
+        return LocalModelGateway().decide_action(
+            payload,
+            available_tools,
+            completed_tools,
+            retrieval_done,
+            retrieval_attempts,
+            last_retrieval_confidence,
+        )
 
     def _request(self, payload: ModelGatewayRequest) -> GeneratedAnswerPayload:
         body = {
@@ -241,8 +331,93 @@ class OpenAIModelGateway(ModelGateway):
         available_tools: list[str],
         completed_tools: list[str],
         retrieval_done: bool,
+        retrieval_attempts: int = 0,
+        last_retrieval_confidence: float = 0.0,
     ) -> AgentAction:
-        return LocalModelGateway().decide_action(payload, available_tools, completed_tools, retrieval_done)
+        response = self.client.responses.create(
+            model=self.config.model,
+            input=[
+                {
+                    "role": "system",
+                    "content": [
+                        {
+                            "type": "input_text",
+                            "text": (
+                                "You are a credit assistant action planner. "
+                                "Choose exactly one next action for the current step. "
+                                "Available actions are: tool_call, retrieve, answer, insufficient_evidence. "
+                                "Return strict JSON with keys: action, tool_name, query, reasoning. "
+                                "Use tool_call only with one of the allowed tools. "
+                                "Use retrieve when educational evidence is still needed or a refined retrieval query may help. "
+                                "Use insufficient_evidence when bounded steps are unlikely to produce enough grounded support. "
+                                "Use answer only when the available evidence is sufficient to produce a grounded response."
+                            ),
+                        }
+                    ],
+                },
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "input_text",
+                            "text": json.dumps(
+                                {
+                                    "request": payload.model_dump(mode="json"),
+                                    "available_tools": available_tools,
+                                    "completed_tools": completed_tools,
+                                    "retrieval_done": retrieval_done,
+                                    "retrieval_attempts": retrieval_attempts,
+                                    "last_retrieval_confidence": last_retrieval_confidence,
+                                },
+                                ensure_ascii=True,
+                            ),
+                        }
+                    ],
+                },
+            ],
+            stream=False,
+        )
+        output_text = getattr(response, "output_text", None)
+        if not output_text:
+            return LocalModelGateway().decide_action(
+                payload,
+                available_tools,
+                completed_tools,
+                retrieval_done,
+                retrieval_attempts,
+                last_retrieval_confidence,
+            )
+        parsed = self._parse_action_output(output_text)
+        if parsed is None:
+            return LocalModelGateway().decide_action(
+                payload,
+                available_tools,
+                completed_tools,
+                retrieval_done,
+                retrieval_attempts,
+                last_retrieval_confidence,
+            )
+        try:
+            action = AgentAction(**parsed)
+        except Exception:
+            return LocalModelGateway().decide_action(
+                payload,
+                available_tools,
+                completed_tools,
+                retrieval_done,
+                retrieval_attempts,
+                last_retrieval_confidence,
+            )
+        if action.action == "tool_call" and action.tool_name not in available_tools:
+            return LocalModelGateway().decide_action(
+                payload,
+                available_tools,
+                completed_tools,
+                retrieval_done,
+                retrieval_attempts,
+                last_retrieval_confidence,
+            )
+        return action
 
     def _responses_create(self, payload: ModelGatewayRequest, stream: bool):
         return self.client.responses.create(
@@ -284,6 +459,12 @@ class OpenAIModelGateway(ModelGateway):
             if extracted is not None:
                 return extracted
             return fallback_generated_payload(output_text=output_text, payload=payload)
+
+    def _parse_action_output(self, output_text: str) -> dict[str, object] | None:
+        try:
+            return json.loads(output_text)
+        except json.JSONDecodeError:
+            return extract_json_object(output_text)
 
 
 def _dedupe(items: list[str]) -> list[str]:

@@ -60,21 +60,15 @@ class AgentOrchestrator:
                 detail=f"Query classified as {analysis.category}.",
             )
         )
+        tool_results, retrieval_result, _ = self._execute_action_loop(
+            user_id=user_id,
+            message=message,
+            plan=plan,
+            trace=trace,
+        )
 
-        tool_results: dict[str, ToolResult] = {}
-        retrieval_result: RetrievalResult | None = None
-
-        for iteration in range(plan.max_iterations):
-            for tool_name in plan.tool_names:
-                if tool_name not in tool_results:
-                    tool_results[tool_name] = self._run_tool(tool_name=tool_name, user_id=user_id, trace=trace)
-            if plan.retrieval_needed and retrieval_result is None:
-                retrieval_query = plan.retrieval_query or message
-                retrieval_result = self._run_retrieval(retrieval_query, trace)
-
-            evidence = self.evidence_builder.build(tool_results=tool_results, retrieval_result=retrieval_result)
-            if plan.query_type != "COMPLEX_EXPLANATION":
-                break
+        evidence = self.evidence_builder.build(tool_results=tool_results, retrieval_result=retrieval_result)
+        if plan.query_type == "COMPLEX_EXPLANATION":
             if self.evidence_builder.is_sufficient_for_complex_explanation(evidence):
                 trace.steps.append(
                     ExecutionStep(
@@ -85,18 +79,15 @@ class AgentOrchestrator:
                         evidence=[item.title for item in evidence[:4]],
                     )
                 )
-                break
-            if iteration + 1 >= plan.max_iterations:
+            else:
                 trace.steps.append(
                     ExecutionStep(
                         name="evidence_check",
                         kind="compose",
                         status="skipped",
-                        detail="Reached bounded loop limit before expanding evidence further.",
+                        detail="Reached bounded action loop without both tool and retrieval evidence.",
                     )
                 )
-
-        evidence = self.evidence_builder.build(tool_results=tool_results, retrieval_result=retrieval_result)
         answer = self.response_composer.compose(
             plan=plan,
             user_message=message,
@@ -186,14 +177,16 @@ class AgentOrchestrator:
         user_id: str,
         message: str,
         plan: ExecutionPlan,
+        trace: TraceContext | None = None,
         emit_event: Callable[[str, dict[str, object]], None] | None = None,
     ) -> tuple[dict[str, ToolResult], RetrievalResult | None, TraceContext]:
         tool_results: dict[str, ToolResult] = {}
         retrieval_result: RetrievalResult | None = None
-        trace = self._stream_trace(plan, user_id)
+        working_trace = trace or self._stream_trace(plan, user_id)
         gateway = self._decision_gateway()
         payload = ModelGatewayRequest(plan=plan, user_message=message)
-        max_steps = max(1, len(plan.tool_names) + (1 if plan.retrieval_needed else 0) + 1)
+        max_steps = max(1, plan.max_iterations)
+        retrieval_attempts = 0
 
         for _ in range(max_steps):
             action = gateway.decide_action(
@@ -201,11 +194,22 @@ class AgentOrchestrator:
                 available_tools=plan.tool_names,
                 completed_tools=list(tool_results.keys()),
                 retrieval_done=retrieval_result is not None,
+                retrieval_attempts=retrieval_attempts,
+                last_retrieval_confidence=retrieval_result.top_confidence if retrieval_result is not None else 0.0,
+            )
+            working_trace.steps.append(
+                ExecutionStep(
+                    name=f"decide_{action.action}",
+                    kind="compose",
+                    status="completed",
+                    detail=self._action_trace_detail(action=action, tool_results=tool_results, retrieval_result=retrieval_result),
+                    evidence=list(tool_results.keys()) + ([retrieval_result.query] if retrieval_result is not None else []),
+                )
             )
             if action.action == "tool_call" and action.tool_name:
                 if emit_event is not None:
                     emit_event("tool_start", {"tool_name": action.tool_name, "reasoning": action.reasoning})
-                tool_result = self._run_tool(tool_name=action.tool_name, user_id=user_id, trace=trace)
+                tool_result = self._run_tool(tool_name=action.tool_name, user_id=user_id, trace=working_trace)
                 tool_results[action.tool_name] = tool_result
                 if emit_event is not None:
                     emit_event(
@@ -221,9 +225,13 @@ class AgentOrchestrator:
                 continue
             if action.action == "retrieve":
                 retrieval_query = action.query or plan.retrieval_query or message
+                retrieval_attempts += 1
                 if emit_event is not None:
-                    emit_event("retrieval_start", {"query": retrieval_query, "reasoning": action.reasoning})
-                retrieval_result = self._run_retrieval(retrieval_query, trace)
+                    emit_event(
+                        "retrieval_start",
+                        {"query": retrieval_query, "reasoning": action.reasoning, "attempt": retrieval_attempts},
+                    )
+                retrieval_result = self._run_retrieval(retrieval_query, working_trace)
                 if emit_event is not None:
                     emit_event(
                         "retrieval_result",
@@ -232,13 +240,16 @@ class AgentOrchestrator:
                             "used": retrieval_result.used,
                             "top_confidence": retrieval_result.top_confidence,
                             "document_titles": [document.title for document in retrieval_result.documents],
+                            "attempt": retrieval_attempts,
                         },
                     )
                 payload = self._refresh_gateway_payload(payload, tool_results, retrieval_result)
                 continue
+            if action.action == "insufficient_evidence":
+                break
             break
 
-        return tool_results, retrieval_result, trace
+        return tool_results, retrieval_result, working_trace
 
     def _refresh_gateway_payload(
         self,
@@ -319,3 +330,20 @@ class AgentOrchestrator:
             execution_mode=plan.execution_mode,
             response_strategy=plan.response_strategy,
         )
+
+    def _action_trace_detail(
+        self,
+        action: AgentAction,
+        tool_results: dict[str, ToolResult],
+        retrieval_result: RetrievalResult | None,
+    ) -> str:
+        completed_tools = ", ".join(tool_results.keys()) or "none"
+        retrieval_state = "done" if retrieval_result is not None else "pending"
+        target = action.tool_name or action.query or "final answer"
+        if action.reasoning:
+            return (
+                f"Selected {action.action} for {target}. "
+                f"Reasoning: {action.reasoning} "
+                f"Completed tools: {completed_tools}. Retrieval: {retrieval_state}."
+            )
+        return f"Selected {action.action} for {target}. Completed tools: {completed_tools}. Retrieval: {retrieval_state}."
