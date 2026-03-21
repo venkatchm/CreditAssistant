@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CreditAssistant Console</title>
+    <meta
+      name="description"
+      content="Operational chat console for exploring customer credit profiles and streaming grounded answers from the CreditAssistant backend."
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <p class="eyebrow">CreditAssistant</p>
+          <h1>Advisor Console</h1>
+          <p class="brand-copy">
+            Select a customer profile, inspect their current position, and chat with the backend in streaming mode.
+          </p>
+        </div>
+
+        <div class="config-card">
+          <label class="field-label" for="api-base">Backend URL</label>
+          <div class="config-row">
+            <input id="api-base" class="text-input" type="url" placeholder="http://localhost:8000" />
+            <button id="save-config" class="secondary-button" type="button">Save</button>
+          </div>
+          <p id="connection-status" class="muted-text">Checking backend availability...</p>
+        </div>
+
+        <section class="user-panel">
+          <div class="section-heading">
+            <h2>Customers</h2>
+            <button id="refresh-users" class="ghost-button" type="button">Refresh</button>
+          </div>
+          <div id="user-list" class="user-list" aria-live="polite"></div>
+        </section>
+      </aside>
+
+      <main class="workspace">
+        <header class="hero">
+          <div>
+            <p class="eyebrow">Live Workspace</p>
+            <h2 id="hero-title">Select a customer to begin</h2>
+            <p id="hero-subtitle" class="hero-copy">
+              The assistant will use the selected user ID when calling the backend.
+            </p>
+          </div>
+          <div class="hero-actions">
+            <button id="load-profile" class="secondary-button" type="button">Reload profile</button>
+            <button id="clear-chat" class="ghost-button" type="button">Clear chat</button>
+          </div>
+        </header>
+
+        <section class="chat-layout">
+          <section class="panel chat-panel">
+            <div class="section-heading">
+              <div>
+                <h3>Advisory Chat</h3>
+                <p class="muted-text">Streaming SSE events and answer text are rendered inline.</p>
+              </div>
+              <span id="chat-status" class="status-chip idle">Idle</span>
+            </div>
+
+            <div id="prompt-list" class="prompt-list"></div>
+            <div id="chat-log" class="chat-log" aria-live="polite"></div>
+
+            <form id="chat-form" class="composer">
+              <label class="sr-only" for="chat-input">Ask a question</label>
+              <textarea
+                id="chat-input"
+                class="composer-input"
+                rows="3"
+                placeholder="Ask about credit score drivers, utilization, payment history, or recommendations..."
+              ></textarea>
+              <div class="composer-actions">
+                <p class="muted-text">Press Enter to send, Shift+Enter for a newline.</p>
+                <div class="action-row">
+                  <button id="stop-stream" class="ghost-button" type="button" disabled>Stop</button>
+                  <button id="send-message" class="primary-button" type="submit">Send message</button>
+                </div>
+              </div>
+            </form>
+          </section>
+
+          <aside class="panel activity-panel">
+            <div class="section-heading">
+              <h3>Streaming Activity</h3>
+              <span class="muted-text">Execution trace</span>
+            </div>
+            <div id="activity-feed" class="activity-feed empty-state">
+              Streaming progress events will appear here during each request.
+            </div>
+          </aside>
+        </section>
+
+        <section id="profile-grid" class="profile-grid">
+          <article class="panel overview-panel">
+            <div class="section-heading">
+              <h3>Profile Snapshot</h3>
+              <span id="selected-user-chip" class="status-chip">No user selected</span>
+            </div>
+            <div id="profile-summary" class="summary-grid empty-state">
+              Choose a customer from the left rail to load their profile, metrics, and recommendations.
+            </div>
+          </article>
+
+          <article class="panel signals-panel">
+            <div class="section-heading">
+              <h3>Key Signals</h3>
+              <span class="muted-text">Realtime backend context</span>
+            </div>
+            <div id="signal-list" class="signal-list empty-state">
+              Customer signals appear here after the profile loads.
+            </div>
+          </article>
+        </section>
+      </main>
+    </div>
+
+    <template id="user-card-template">
+      <button class="user-card" type="button">
+        <div class="user-card-top">
+          <div>
+            <strong class="user-name"></strong>
+            <p class="user-meta"></p>
+          </div>
+          <span class="persona-badge"></span>
+        </div>
+        <p class="user-location"></p>
+      </button>
+    </template>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

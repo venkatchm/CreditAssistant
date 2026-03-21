@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Iterator
 
-from app.schemas.chat import ChatResponse
+from app.schemas.chat import ChatResponse, ClassificationResult
 from app.services.agent_orchestrator import AgentOrchestrator
 from app.services.query_analyzer import QueryAnalyzer
 from app.services.streaming import build_end_event, build_progress_event, build_start_event, build_text_chunk_event
@@ -43,19 +43,11 @@ class ChatOrchestrator:
             category=analysis.category,
             normalized_message=analysis.normalized_message,
         )
-        progress_events: list[str] = []
-
-        def emit_event(event_name: str, data: dict[str, object]) -> None:
-            progress_events.append(build_progress_event(event_name, **data))
-
-        gateway_request, plan = self.agent_orchestrator.build_gateway_request(
+        gateway_request, plan = yield from self._stream_gateway_request_events(
             user_id=user_id,
             message=message,
             analysis=analysis,
-            emit_event=emit_event,
         )
-        for event in progress_events:
-            yield event
 
         chunk_index = 0
         for chunk in self.agent_orchestrator.response_composer.model_gateway.stream(gateway_request):
@@ -68,3 +60,21 @@ class ChatOrchestrator:
             execution_mode=plan.execution_mode,
             streamed_chunks=chunk_index,
         )
+
+    def _stream_gateway_request_events(
+        self,
+        user_id: str,
+        message: str,
+        analysis: ClassificationResult,
+    ) -> Iterator[str]:
+        generator = self.agent_orchestrator.stream_gateway_request(
+            user_id=user_id,
+            message=message,
+            analysis=analysis,
+        )
+        while True:
+            try:
+                event_name, data = next(generator)
+            except StopIteration as stop:
+                return stop.value
+            yield build_progress_event(event_name, **data)

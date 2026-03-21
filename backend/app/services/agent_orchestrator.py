@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from time import perf_counter
-from typing import Callable
+from typing import Callable, Generator
 from uuid import uuid4
 
 from app.gateway.model_gateway import LocalModelGateway, ModelGatewayRequest
@@ -172,6 +172,50 @@ class AgentOrchestrator:
             plan,
         )
 
+    def stream_gateway_request(
+        self,
+        user_id: str,
+        message: str,
+        analysis: ClassificationResult,
+    ) -> Generator[tuple[str, dict[str, object]], None, tuple[ModelGatewayRequest, ExecutionPlan]]:
+        plan = self.planner.build_plan(analysis=analysis, message=message)
+        yield (
+            "plan",
+            {
+                "query_type": plan.query_type,
+                "execution_mode": plan.execution_mode,
+                "tool_names": plan.tool_names,
+                "retrieval_needed": plan.retrieval_needed,
+                "max_iterations": plan.max_iterations,
+                "response_strategy": plan.response_strategy,
+            },
+        )
+        tool_results, retrieval_result, trace = yield from self._execute_action_loop_streaming(
+            user_id=user_id,
+            message=message,
+            plan=plan,
+        )
+        evidence = self.evidence_builder.build(tool_results=tool_results, retrieval_result=retrieval_result)
+        yield (
+            "compose",
+            {
+                "query_type": plan.query_type,
+                "evidence_count": len(evidence),
+                "tool_calls": trace.tool_calls,
+                "retrieval_used": retrieval_result.used if retrieval_result is not None else False,
+            },
+        )
+        return (
+            self.response_composer.build_gateway_request(
+                plan=plan,
+                user_message=message,
+                tool_results=tool_results,
+                retrieval_result=retrieval_result,
+                evidence=evidence,
+            ),
+            plan,
+        )
+
     def _execute_action_loop(
         self,
         user_id: str,
@@ -271,6 +315,79 @@ class AgentOrchestrator:
             retrieval_context=[document.snippet for document in retrieval_result.documents] if retrieval_result else [],
             grounding_rules=payload.grounding_rules,
         )
+
+    def _execute_action_loop_streaming(
+        self,
+        user_id: str,
+        message: str,
+        plan: ExecutionPlan,
+    ) -> Generator[tuple[str, dict[str, object]], None, tuple[dict[str, ToolResult], RetrievalResult | None, TraceContext]]:
+        tool_results: dict[str, ToolResult] = {}
+        retrieval_result: RetrievalResult | None = None
+        working_trace = self._stream_trace(plan, user_id)
+        gateway = self._decision_gateway()
+        payload = ModelGatewayRequest(plan=plan, user_message=message)
+        max_steps = max(1, plan.max_iterations)
+        retrieval_attempts = 0
+
+        for _ in range(max_steps):
+            action = gateway.decide_action(
+                payload=payload,
+                available_tools=plan.tool_names,
+                completed_tools=list(tool_results.keys()),
+                retrieval_done=retrieval_result is not None,
+                retrieval_attempts=retrieval_attempts,
+                last_retrieval_confidence=retrieval_result.top_confidence if retrieval_result is not None else 0.0,
+            )
+            working_trace.steps.append(
+                ExecutionStep(
+                    name=f"decide_{action.action}",
+                    kind="compose",
+                    status="completed",
+                    detail=self._action_trace_detail(action=action, tool_results=tool_results, retrieval_result=retrieval_result),
+                    evidence=list(tool_results.keys()) + ([retrieval_result.query] if retrieval_result is not None else []),
+                )
+            )
+            if action.action == "tool_call" and action.tool_name:
+                yield ("tool_start", {"tool_name": action.tool_name, "reasoning": action.reasoning})
+                tool_result = self._run_tool(tool_name=action.tool_name, user_id=user_id, trace=working_trace)
+                tool_results[action.tool_name] = tool_result
+                yield (
+                    "tool_result",
+                    {
+                        "tool_name": action.tool_name,
+                        "source": tool_result.source,
+                        "summary": tool_result.payload_summary,
+                        "evidence": tool_result.evidence,
+                    },
+                )
+                payload = self._refresh_gateway_payload(payload, tool_results, retrieval_result)
+                continue
+            if action.action == "retrieve":
+                retrieval_query = action.query or plan.retrieval_query or message
+                retrieval_attempts += 1
+                yield (
+                    "retrieval_start",
+                    {"query": retrieval_query, "reasoning": action.reasoning, "attempt": retrieval_attempts},
+                )
+                retrieval_result = self._run_retrieval(retrieval_query, working_trace)
+                yield (
+                    "retrieval_result",
+                    {
+                        "query": retrieval_result.query,
+                        "used": retrieval_result.used,
+                        "top_confidence": retrieval_result.top_confidence,
+                        "document_titles": [document.title for document in retrieval_result.documents],
+                        "attempt": retrieval_attempts,
+                    },
+                )
+                payload = self._refresh_gateway_payload(payload, tool_results, retrieval_result)
+                continue
+            if action.action == "insufficient_evidence":
+                break
+            break
+
+        return tool_results, retrieval_result, working_trace
 
     def _decision_gateway(self):
         gateway = self.response_composer.model_gateway

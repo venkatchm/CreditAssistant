@@ -307,7 +307,7 @@ class OpenAIModelGateway(ModelGateway):
         self.config = config
 
     def generate(self, payload: ModelGatewayRequest) -> GeneratedAnswerPayload:
-        response = self._responses_create(payload, stream=False)
+        response = self._responses_create(payload, stream=False, response_format="structured")
         output_text = getattr(response, "output_text", None)
         if not output_text:
             raise RuntimeError("OpenAI model gateway returned no text output.")
@@ -315,14 +315,12 @@ class OpenAIModelGateway(ModelGateway):
         return GeneratedAnswerPayload(**normalize_generated_payload(parsed, payload))
 
     def stream(self, payload: ModelGatewayRequest):
-        stream = self._responses_create(payload, stream=True)
-        collected_text_parts: list[str] = []
+        stream = self._responses_create(payload, stream=True, response_format="plain_text")
         for event in stream:
             event_type = getattr(event, "type", "")
             if event_type == "response.output_text.delta":
                 delta = getattr(event, "delta", "")
                 if delta:
-                    collected_text_parts.append(delta)
                     yield delta
 
     def decide_action(
@@ -419,7 +417,7 @@ class OpenAIModelGateway(ModelGateway):
             )
         return action
 
-    def _responses_create(self, payload: ModelGatewayRequest, stream: bool):
+    def _responses_create(self, payload: ModelGatewayRequest, stream: bool, response_format: str):
         return self.client.responses.create(
             model=self.config.model,
             input=[
@@ -428,13 +426,7 @@ class OpenAIModelGateway(ModelGateway):
                     "content": [
                         {
                             "type": "input_text",
-                            "text": (
-                                "You are a credit assistant answer generator. "
-                                "Use only the supplied evidence. "
-                                "Personal credit facts must come from tool evidence. "
-                                "Educational explanations may come from retrieved evidence. "
-                                "Return strict JSON with keys: message, causes, evidence, suggested_actions."
-                            ),
+                            "text": self._build_answer_system_prompt(response_format),
                         }
                     ],
                 },
@@ -449,6 +441,31 @@ class OpenAIModelGateway(ModelGateway):
                 },
             ],
             stream=stream,
+        )
+
+    def _build_answer_system_prompt(self, response_format: str) -> str:
+        shared_rules = (
+            "You are a credit assistant answer generator. "
+            "Use only the supplied evidence. "
+            "Personal credit facts must come from tool evidence. "
+            "Educational explanations may come from retrieved evidence. "
+        )
+        if response_format == "plain_text":
+            return (
+                f"{shared_rules}"
+                "Return only natural-language answer text for the user. "
+                "Do not return JSON. "
+                "Do not use markdown code fences. "
+                "Write a complete answer in plain English, not a single sentence. "
+                "Start with a direct answer to the user's question. "
+                "Then briefly explain the main drivers or reasons when relevant. "
+                "Include 2 to 4 short actionable recommendations when relevant. "
+                "Prefer short paragraphs or simple bullet points. "
+                "Keep the response clear, grounded, and directly actionable."
+            )
+        return (
+            f"{shared_rules}"
+            "Return strict JSON with keys: message, causes, evidence, suggested_actions."
         )
 
     def _parse_generated_output(self, output_text: str, payload: ModelGatewayRequest) -> dict[str, object]:

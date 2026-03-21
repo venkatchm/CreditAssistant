@@ -4,6 +4,7 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.api.routes.chat import router as chat_router
 from app.api.routes.credit import router as credit_router
@@ -42,6 +43,10 @@ app.add_middleware(
 app.include_router(users_router)
 app.include_router(credit_router)
 app.include_router(chat_router)
+
+frontend_dir = Path(__file__).resolve().parent.parent / "frontend"
+if frontend_dir.exists():
+    app.mount("/app", StaticFiles(directory=frontend_dir, html=True), name="frontend")
 
 
 @app.get("/health")
