@@ -273,20 +273,9 @@ class ModelGatewayTests(unittest.TestCase):
         self.assertEqual(kwargs["model"], "gpt-5")
 
     @patch("app.gateway.model_gateway.OpenAI")
-    def test_openai_gateway_decides_action_from_structured_json(self, mock_openai_cls: MagicMock) -> None:
+    def test_openai_gateway_uses_local_rule_based_action_planning(self, mock_openai_cls: MagicMock) -> None:
         mock_client = MagicMock()
-        mock_client.responses.create.return_value = MagicMock(
-            output_text=json.dumps(
-                {
-                    "action": "tool_call",
-                    "tool_name": "get_credit_metrics",
-                    "query": None,
-                    "reasoning": "Need utilization and score movement details before answering.",
-                }
-            )
-        )
         mock_openai_cls.return_value = mock_client
-
         gateway = OpenAIModelGateway(
             OpenAIModelGatewayConfig(
                 api_key="test-key",
@@ -314,25 +303,13 @@ class ModelGatewayTests(unittest.TestCase):
         )
         self.assertEqual(action.action, "tool_call")
         self.assertEqual(action.tool_name, "get_credit_metrics")
-        self.assertIn("utilization", action.reasoning.lower())
-        kwargs = mock_client.responses.create.call_args.kwargs
-        self.assertEqual(kwargs["model"], "gpt-5")
-        self.assertFalse(kwargs["stream"])
+        self.assertIn("get_credit_metrics", action.reasoning)
+        mock_client.responses.create.assert_not_called()
 
     @patch("app.gateway.model_gateway.OpenAI")
-    def test_openai_gateway_falls_back_to_local_action_when_tool_is_invalid(self, mock_openai_cls: MagicMock) -> None:
+    def test_openai_gateway_simple_fact_action_needs_no_remote_call(self, mock_openai_cls: MagicMock) -> None:
         mock_client = MagicMock()
-        mock_client.responses.create.return_value = MagicMock(
-            output_text=json.dumps(
-                {
-                    "action": "tool_call",
-                    "tool_name": "unsupported_tool",
-                    "reasoning": "Use another tool.",
-                }
-            )
-        )
         mock_openai_cls.return_value = mock_client
-
         gateway = OpenAIModelGateway(
             OpenAIModelGatewayConfig(
                 api_key="test-key",
@@ -360,6 +337,7 @@ class ModelGatewayTests(unittest.TestCase):
         )
         self.assertEqual(action.action, "tool_call")
         self.assertEqual(action.tool_name, "get_credit_profile")
+        mock_client.responses.create.assert_not_called()
 
     def test_normalize_generated_payload_prettifies_json_evidence(self) -> None:
         payload = ModelGatewayRequest(

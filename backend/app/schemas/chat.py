@@ -117,6 +117,7 @@ class TraceContext(BaseModel):
     retrieval_docs: List[str] = Field(default_factory=list)
     response_strategy: str
     steps: List[ExecutionStep] = Field(default_factory=list)
+    stage_timings_ms: dict[str, int] = Field(default_factory=dict)
     total_duration_ms: int = 0
 
 

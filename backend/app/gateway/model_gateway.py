@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from json import JSONDecoder
 from urllib import error, request
 
 from pydantic import BaseModel, Field
@@ -241,8 +242,37 @@ class RemoteModelGateway(ModelGateway):
         return self._request(payload)
 
     def stream(self, payload: ModelGatewayRequest):
-        result = self._request(payload)
-        yield result.message
+        body = {
+            "model": self.config.model_name,
+            "input": payload.model_dump(mode="json"),
+            "stream": True,
+        }
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "text/event-stream, application/x-ndjson, application/json",
+        }
+        if self.config.api_key:
+            headers["Authorization"] = f"Bearer {self.config.api_key}"
+        http_request = request.Request(
+            url=self.config.base_url,
+            data=json.dumps(body).encode("utf-8"),
+            headers=headers,
+            method="POST",
+        )
+        buffered_text = ""
+        try:
+            with request.urlopen(http_request, timeout=self.config.timeout_seconds) as response:
+                yielded = False
+                for chunk in _iter_remote_stream(response):
+                    if chunk:
+                        yielded = True
+                        buffered_text += chunk
+                        yield chunk
+                if not yielded:
+                    if buffered_text.strip():
+                        yield buffered_text
+        except error.URLError as exc:  # pragma: no cover
+            raise RuntimeError(f"Remote model gateway request failed: {exc}") from exc
 
     def decide_action(
         self,
@@ -253,14 +283,8 @@ class RemoteModelGateway(ModelGateway):
         retrieval_attempts: int = 0,
         last_retrieval_confidence: float = 0.0,
     ) -> AgentAction:
-        return LocalModelGateway().decide_action(
-            payload,
-            available_tools,
-            completed_tools,
-            retrieval_done,
-            retrieval_attempts,
-            last_retrieval_confidence,
-        )
+        # Reserve remote calls for the final answer path. Deterministic planning removes one full model round-trip.
+        return LocalModelGateway().decide_action(payload, available_tools, completed_tools, retrieval_done, retrieval_attempts, last_retrieval_confidence)
 
     def _request(self, payload: ModelGatewayRequest) -> GeneratedAnswerPayload:
         body = {
@@ -332,90 +356,8 @@ class OpenAIModelGateway(ModelGateway):
         retrieval_attempts: int = 0,
         last_retrieval_confidence: float = 0.0,
     ) -> AgentAction:
-        response = self.client.responses.create(
-            model=self.config.model,
-            input=[
-                {
-                    "role": "system",
-                    "content": [
-                        {
-                            "type": "input_text",
-                            "text": (
-                                "You are a credit assistant action planner. "
-                                "Choose exactly one next action for the current step. "
-                                "Available actions are: tool_call, retrieve, answer, insufficient_evidence. "
-                                "Return strict JSON with keys: action, tool_name, query, reasoning. "
-                                "Use tool_call only with one of the allowed tools. "
-                                "Use retrieve when educational evidence is still needed or a refined retrieval query may help. "
-                                "Use insufficient_evidence when bounded steps are unlikely to produce enough grounded support. "
-                                "Use answer only when the available evidence is sufficient to produce a grounded response."
-                            ),
-                        }
-                    ],
-                },
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "input_text",
-                            "text": json.dumps(
-                                {
-                                    "request": payload.model_dump(mode="json"),
-                                    "available_tools": available_tools,
-                                    "completed_tools": completed_tools,
-                                    "retrieval_done": retrieval_done,
-                                    "retrieval_attempts": retrieval_attempts,
-                                    "last_retrieval_confidence": last_retrieval_confidence,
-                                },
-                                ensure_ascii=True,
-                            ),
-                        }
-                    ],
-                },
-            ],
-            stream=False,
-        )
-        output_text = getattr(response, "output_text", None)
-        if not output_text:
-            return LocalModelGateway().decide_action(
-                payload,
-                available_tools,
-                completed_tools,
-                retrieval_done,
-                retrieval_attempts,
-                last_retrieval_confidence,
-            )
-        parsed = self._parse_action_output(output_text)
-        if parsed is None:
-            return LocalModelGateway().decide_action(
-                payload,
-                available_tools,
-                completed_tools,
-                retrieval_done,
-                retrieval_attempts,
-                last_retrieval_confidence,
-            )
-        try:
-            action = AgentAction(**parsed)
-        except Exception:
-            return LocalModelGateway().decide_action(
-                payload,
-                available_tools,
-                completed_tools,
-                retrieval_done,
-                retrieval_attempts,
-                last_retrieval_confidence,
-            )
-        if action.action == "tool_call" and action.tool_name not in available_tools:
-            return LocalModelGateway().decide_action(
-                payload,
-                available_tools,
-                completed_tools,
-                retrieval_done,
-                retrieval_attempts,
-                last_retrieval_confidence,
-            )
-        return action
+        # Reserve OpenAI usage for final answer generation instead of spending an extra model call on action planning.
+        return LocalModelGateway().decide_action(payload, available_tools, completed_tools, retrieval_done, retrieval_attempts, last_retrieval_confidence)
 
     def _responses_create(self, payload: ModelGatewayRequest, stream: bool, response_format: str):
         return self.client.responses.create(
@@ -476,12 +418,6 @@ class OpenAIModelGateway(ModelGateway):
             if extracted is not None:
                 return extracted
             return fallback_generated_payload(output_text=output_text, payload=payload)
-
-    def _parse_action_output(self, output_text: str) -> dict[str, object] | None:
-        try:
-            return json.loads(output_text)
-        except json.JSONDecodeError:
-            return extract_json_object(output_text)
 
 
 def _dedupe(items: list[str]) -> list[str]:
@@ -556,6 +492,110 @@ def extract_json_object(output_text: str) -> dict[str, object] | None:
         return json.loads(candidate)
     except json.JSONDecodeError:
         return None
+
+
+def _iter_remote_stream(response):
+    content_type = ""
+    if hasattr(response, "headers") and response.headers is not None:
+        content_type = response.headers.get("Content-Type", "")
+    decoder_buffer = ""
+    pending_sse_lines: list[str] = []
+    while True:
+        chunk = response.read(1024)
+        if not chunk:
+            break
+        text = chunk.decode("utf-8", errors="ignore")
+        if content_type.startswith("text/plain"):
+            yield text
+            continue
+        if "text/event-stream" in content_type:
+            pending_sse_lines.extend(text.splitlines())
+            while "" in pending_sse_lines:
+                blank_index = pending_sse_lines.index("")
+                event_lines = pending_sse_lines[:blank_index]
+                pending_sse_lines = pending_sse_lines[blank_index + 1 :]
+                data_lines = [line[5:].strip() for line in event_lines if line.startswith("data:")]
+                if not data_lines:
+                    continue
+                payload_text = "\n".join(data_lines)
+                try:
+                    payload = json.loads(payload_text)
+                except json.JSONDecodeError:
+                    yield payload_text
+                    continue
+                delta = _extract_stream_text(payload)
+                if delta:
+                    yield delta
+            continue
+
+        if "application/x-ndjson" in content_type:
+            decoder_buffer += text
+            while "\n" in decoder_buffer:
+                line, decoder_buffer = decoder_buffer.split("\n", 1)
+                stripped = line.strip()
+                if not stripped:
+                    continue
+                try:
+                    payload = json.loads(stripped)
+                except json.JSONDecodeError:
+                    yield stripped
+                    continue
+                delta = _extract_stream_text(payload)
+                if delta:
+                    yield delta
+            continue
+
+        decoder_buffer += text
+        parsed_objects, decoder_buffer = _iter_json_objects(decoder_buffer)
+        for parsed in parsed_objects:
+            delta = _extract_stream_text(parsed)
+            if delta:
+                yield delta
+
+    if decoder_buffer.strip():
+        try:
+            payload = json.loads(decoder_buffer)
+        except json.JSONDecodeError:
+            return
+        delta = _extract_stream_text(payload)
+        if delta:
+            yield delta
+
+
+def _extract_stream_text(payload: object) -> str:
+    if isinstance(payload, str):
+        return payload
+    if isinstance(payload, dict):
+        for key in ("delta", "text", "output_text", "message", "content"):
+            value = payload.get(key)
+            if isinstance(value, str):
+                return value
+            if isinstance(value, list):
+                combined = "".join(_extract_stream_text(item) for item in value)
+                if combined:
+                    return combined
+        return ""
+    if isinstance(payload, list):
+        return "".join(_extract_stream_text(item) for item in payload)
+    return ""
+
+
+def _iter_json_objects(buffer: str) -> tuple[list[object], str]:
+    decoder = JSONDecoder()
+    parsed: list[object] = []
+    index = 0
+    while index < len(buffer):
+        while index < len(buffer) and buffer[index].isspace():
+            index += 1
+        if index >= len(buffer):
+            return parsed, ""
+        try:
+            value, next_index = decoder.raw_decode(buffer, index)
+        except ValueError:
+            return parsed, buffer[index:]
+        parsed.append(value)
+        index = next_index
+    return parsed, ""
 
 
 def fallback_generated_payload(output_text: str, payload: ModelGatewayRequest) -> dict[str, object]:

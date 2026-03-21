@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from functools import lru_cache
+
 from app.core.settings import get_settings
 from app.gateway.model_gateway import (
     LocalModelGateway,
@@ -28,54 +30,68 @@ from app.services.tool_registry import ToolRegistry
 from app.services.user_service import UserService
 
 
+@lru_cache(maxsize=1)
 def get_credit_repository() -> CreditRepository:
+    # Keep the JSON dataset warm in memory instead of rebuilding repository state per request.
     return JsonCreditRepository()
 
 
+@lru_cache(maxsize=1)
 def get_user_service() -> UserService:
     return UserService(get_credit_repository())
 
 
+@lru_cache(maxsize=1)
 def get_credit_service() -> CreditService:
     return CreditService(get_credit_repository())
 
 
+@lru_cache(maxsize=1)
 def get_metrics_service() -> MetricsService:
     return MetricsService(get_credit_repository())
 
 
+@lru_cache(maxsize=1)
 def get_recommendation_service() -> RecommendationService:
     return RecommendationService(get_credit_repository())
 
 
+@lru_cache(maxsize=1)
 def get_inquiry_service() -> InquiryService:
     return InquiryService(get_credit_repository())
 
 
+@lru_cache(maxsize=1)
 def get_payment_history_service() -> PaymentHistoryService:
     return PaymentHistoryService(get_credit_repository())
 
 
+@lru_cache(maxsize=1)
 def get_classifier_service() -> ClassifierService:
     return ClassifierService()
 
 
+@lru_cache(maxsize=1)
 def get_query_analyzer() -> QueryAnalyzer:
     return QueryAnalyzer()
 
 
+@lru_cache(maxsize=1)
 def get_rag_service() -> RagService:
     return RagService()
 
 
+@lru_cache(maxsize=1)
 def get_execution_planner() -> ExecutionPlanner:
     return ExecutionPlanner()
 
 
+@lru_cache(maxsize=1)
 def get_evidence_builder() -> EvidenceBuilder:
     return EvidenceBuilder()
 
 
+@lru_cache(maxsize=1)
 def get_grounded_response_composer() -> GroundedResponseComposer:
     return GroundedResponseComposer(
         model_gateway=get_model_gateway(),
@@ -83,6 +99,7 @@ def get_grounded_response_composer() -> GroundedResponseComposer:
     )
 
 
+@lru_cache(maxsize=1)
 def get_model_gateway() -> ModelGateway:
     settings = get_settings()
     if settings.model_backend == "openai":
@@ -108,17 +125,18 @@ def get_model_gateway() -> ModelGateway:
     return LocalModelGateway()
 
 
+@lru_cache(maxsize=1)
 def get_tool_registry() -> ToolRegistry:
-    repository = get_credit_repository()
     return ToolRegistry(
-        credit_service=CreditService(repository),
-        metrics_service=MetricsService(repository),
-        recommendation_service=RecommendationService(repository),
-        inquiry_service=InquiryService(repository),
-        payment_history_service=PaymentHistoryService(repository),
+        credit_service=get_credit_service(),
+        metrics_service=get_metrics_service(),
+        recommendation_service=get_recommendation_service(),
+        inquiry_service=get_inquiry_service(),
+        payment_history_service=get_payment_history_service(),
     )
 
 
+@lru_cache(maxsize=1)
 def get_agent_orchestrator() -> AgentOrchestrator:
     return AgentOrchestrator(
         planner=get_execution_planner(),
@@ -129,8 +147,9 @@ def get_agent_orchestrator() -> AgentOrchestrator:
     )
 
 
+@lru_cache(maxsize=1)
 def get_chat_orchestrator() -> ChatOrchestrator:
     return ChatOrchestrator(
-        query_analyzer=QueryAnalyzer(),
+        query_analyzer=get_query_analyzer(),
         agent_orchestrator=get_agent_orchestrator(),
     )

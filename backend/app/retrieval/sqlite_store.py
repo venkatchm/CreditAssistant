@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from hashlib import sha256
 from math import sqrt
 from pathlib import Path
+from threading import RLock
 from typing import Iterator
 from uuid import uuid4
 
@@ -46,6 +47,8 @@ class RetrievalPersistence(RetrievalPersistenceBackend):
     def __init__(self, database: RetrievalDatabase, embedding_model: str) -> None:
         self.database = database
         self.embedding_model = embedding_model
+        self._embedding_rows_cache: list[sqlite3.Row] | None = None
+        self._cache_lock = RLock()
 
     def replace_documents(self, documents: list[SourceDocument], chunks: list[ChunkedDocument], embeddings: list[list[float]]) -> None:
         chunk_by_id = {chunk.chunk_id: chunk for chunk in chunks}
@@ -145,28 +148,11 @@ class RetrievalPersistence(RetrievalPersistenceBackend):
                         now,
                     ),
                 )
+        with self._cache_lock:
+            self._embedding_rows_cache = None
 
     def vector_search(self, query_embedding: list[float], top_k: int) -> list[RetrievedChunk]:
-        with self.database.connect() as connection:
-            rows = connection.execute(
-                """
-                SELECT
-                    c.id AS chunk_id,
-                    d.external_id AS doc_id,
-                    c.topic,
-                    c.title,
-                    c.chunk_text,
-                    c.source_name,
-                    c.effective_date,
-                    c.version,
-                    e.embedding_json
-                FROM retrieval_chunk_embeddings e
-                JOIN retrieval_chunks c ON c.id = e.chunk_id
-                JOIN retrieval_documents d ON d.id = c.document_id
-                WHERE e.embedding_model = ?
-                """,
-                (self.embedding_model,),
-            ).fetchall()
+        rows = self._get_embedding_rows()
         ranked: list[RetrievedChunk] = []
         for row in rows:
             embedding = json.loads(row["embedding_json"])
@@ -188,6 +174,33 @@ class RetrievalPersistence(RetrievalPersistenceBackend):
             )
         ranked.sort(key=lambda item: item.score, reverse=True)
         return ranked[:top_k]
+
+    def _get_embedding_rows(self) -> list[sqlite3.Row]:
+        with self._cache_lock:
+            if self._embedding_rows_cache is None:
+                # This remains an in-Python ranking path, which is fine for the bundled tiny corpus.
+                # Caching removes repeated SQLite reads on the /chat retrieval hot path.
+                with self.database.connect() as connection:
+                    self._embedding_rows_cache = connection.execute(
+                        """
+                        SELECT
+                            c.id AS chunk_id,
+                            d.external_id AS doc_id,
+                            c.topic,
+                            c.title,
+                            c.chunk_text,
+                            c.source_name,
+                            c.effective_date,
+                            c.version,
+                            e.embedding_json
+                        FROM retrieval_chunk_embeddings e
+                        JOIN retrieval_chunks c ON c.id = e.chunk_id
+                        JOIN retrieval_documents d ON d.id = c.document_id
+                        WHERE e.embedding_model = ?
+                        """,
+                        (self.embedding_model,),
+                    ).fetchall()
+            return list(self._embedding_rows_cache)
 
     def lexical_search(self, query: str, top_k: int) -> list[RetrievedChunk]:
         match_query = normalize_match_query(query)

@@ -190,7 +190,7 @@ class AgentOrchestratorTests(unittest.TestCase):
             analysis=ClassificationResult(category="COMPLEX_EXPLANATION", normalized_message="why did my credit score drop?"),
         )
         print(f"[agent] plan={execution.plan}")
-        self.assertEqual(execution.plan.max_iterations, 6)
+        self.assertEqual(execution.plan.max_iterations, 3)
         self.assertIn("get_credit_profile", execution.plan.tool_names)
         self.assertIn("get_payment_history", execution.plan.tool_names)
         self.assertTrue(execution.plan.retrieval_needed)

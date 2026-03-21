@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from time import perf_counter
 from typing import Iterable
 
 from app.gateway.model_gateway import ModelGateway, ModelGatewayRequest
@@ -29,19 +30,43 @@ class GroundedResponseComposer:
         retrieval_result: RetrievalResult | None,
         evidence: list[EvidenceItem],
     ) -> GroundedAnswer:
-        if plan.query_type == "SIMPLE_FACT":
-            return self._compose_simple_fact(user_message, tool_results)
-        if plan.query_type == "SIMPLE_RECOMMENDATION":
-            return self._compose_recommendation(tool_results)
-        if plan.query_type == "GENERAL_KNOWLEDGE":
-            return self._compose_general_knowledge(plan, user_message, retrieval_result, evidence)
-        if plan.query_type == "COMPLEX_EXPLANATION":
-            return self._compose_complex_explanation(plan, user_message, tool_results, retrieval_result, evidence)
-        return GroundedAnswer(
-            message="This request is not supported yet. Try asking about your credit score, score changes, recommendations, inquiries, payment history, or utilization.",
-            cards=[],
+        answer, _ = self.compose_with_timings(
+            plan=plan,
+            user_message=user_message,
+            tool_results=tool_results,
+            retrieval_result=retrieval_result,
             evidence=evidence,
         )
+        return answer
+
+    def compose_with_timings(
+        self,
+        plan: ExecutionPlan,
+        user_message: str,
+        tool_results: dict[str, ToolResult],
+        retrieval_result: RetrievalResult | None,
+        evidence: list[EvidenceItem],
+    ) -> tuple[GroundedAnswer, dict[str, int]]:
+        timings: dict[str, int] = {}
+        started_at = perf_counter()
+        if plan.query_type == "SIMPLE_FACT":
+            answer = self._compose_simple_fact(user_message, tool_results)
+        elif plan.query_type == "SIMPLE_RECOMMENDATION":
+            answer = self._compose_recommendation(tool_results)
+        elif plan.query_type == "GENERAL_KNOWLEDGE":
+            answer, generation_ms = self._compose_general_knowledge(plan, user_message, retrieval_result, evidence)
+            timings["final_generation"] = generation_ms
+        elif plan.query_type == "COMPLEX_EXPLANATION":
+            answer, generation_ms = self._compose_complex_explanation(plan, user_message, tool_results, retrieval_result, evidence)
+            timings["final_generation"] = generation_ms
+        else:
+            answer = GroundedAnswer(
+                message="This request is not supported yet. Try asking about your credit score, score changes, recommendations, inquiries, payment history, or utilization.",
+                cards=[],
+                evidence=evidence,
+            )
+        timings["compose_response"] = int((perf_counter() - started_at) * 1000)
+        return answer, timings
 
     def _compose_simple_fact(self, user_message: str, tool_results: dict[str, ToolResult]) -> GroundedAnswer:
         normalized_message = user_message.lower()
@@ -173,14 +198,15 @@ class GroundedResponseComposer:
         user_message: str,
         retrieval_result: RetrievalResult | None,
         evidence: list[EvidenceItem],
-    ) -> GroundedAnswer:
+    ) -> tuple[GroundedAnswer, int]:
         documents = retrieval_result.documents if retrieval_result else []
         if not documents:
             return GroundedAnswer(
                 message="I do not have enough grounded educational evidence to answer that confidently yet.",
                 cards=[],
                 evidence=evidence,
-            )
+            ), 0
+        generation_started_at = perf_counter()
         generated = self.model_gateway.generate(
             ModelGatewayRequest(
                 plan=plan,
@@ -190,6 +216,7 @@ class GroundedResponseComposer:
                 grounding_rules=self._grounding_rules(),
             )
         )
+        generation_ms = int((perf_counter() - generation_started_at) * 1000)
         grounded_message = generated.message if self._message_is_grounded(generated.message, evidence) else documents[0].snippet
         cards = [
             ChatCard(
@@ -204,7 +231,7 @@ class GroundedResponseComposer:
             )
             for document in documents
         ]
-        return GroundedAnswer(message=grounded_message, cards=cards, evidence=evidence)
+        return GroundedAnswer(message=grounded_message, cards=cards, evidence=evidence), generation_ms
 
     def _compose_complex_explanation(
         self,
@@ -213,9 +240,9 @@ class GroundedResponseComposer:
         tool_results: dict[str, ToolResult],
         retrieval_result: RetrievalResult | None,
         evidence: list[EvidenceItem],
-    ) -> GroundedAnswer:
+    ) -> tuple[GroundedAnswer, int]:
         if not self.evidence_builder.is_sufficient_for_complex_explanation(evidence):
-            return self._insufficient_complex_explanation(tool_results=tool_results, evidence=evidence)
+            return self._insufficient_complex_explanation(tool_results=tool_results, evidence=evidence), 0
         profile = tool_results["get_credit_profile"].payload
         metrics = tool_results["get_credit_metrics"].payload.metrics
         recommendations = tool_results["get_recommendations"].payload.recommendations
@@ -277,6 +304,7 @@ class GroundedResponseComposer:
         elif inquiries and inquiries.payload.inquiries and metrics.total_hard_inquiries_12m > 0:
             message += " Recent hard inquiries are also part of the grounded evidence."
 
+        generation_started_at = perf_counter()
         generated = self.model_gateway.generate(
             ModelGatewayRequest(
                 plan=plan,
@@ -291,6 +319,7 @@ class GroundedResponseComposer:
                 grounding_rules=self._grounding_rules(),
             )
         )
+        generation_ms = int((perf_counter() - generation_started_at) * 1000)
         grounded_message = generated.message if self._message_is_grounded(generated.message, evidence) else message
         grounded_evidence = self.evidence_builder.filter_supported_texts(generated.evidence, evidence) or evidence_lines[:6]
         grounded_causes = self.evidence_builder.filter_supported_texts(generated.causes, evidence) or causes[:4]
@@ -299,7 +328,7 @@ class GroundedResponseComposer:
             evidence=grounded_evidence,
             suggested_actions=generated.suggested_actions or [item.title for item in recommendations[:3]],
         )
-        return GroundedAnswer(message=grounded_message or message, cards=cards, explanation=explanation, evidence=evidence)
+        return GroundedAnswer(message=grounded_message or message, cards=cards, explanation=explanation, evidence=evidence), generation_ms
 
     def as_chat_response(self, plan: ExecutionPlan, answer: GroundedAnswer) -> ChatResponse:
         return ChatResponse(

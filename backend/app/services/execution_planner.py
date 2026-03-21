@@ -49,7 +49,8 @@ class ExecutionPlanner:
                 retrieval_needed=True,
                 retrieval_query=self._build_complex_retrieval_query(message),
                 response_strategy="tool_and_retrieval_grounded_explanation",
-                max_iterations=6,
+                # The orchestrator now runs a single deterministic tool pass; this only bounds retrieval retries.
+                max_iterations=3,
             )
         return ExecutionPlan(
             query_type="UNSUPPORTED",
@@ -71,17 +72,17 @@ class ExecutionPlanner:
         return ["get_credit_profile", "get_credit_metrics"]
 
     def _complex_explanation_tools(self, normalized_message: str) -> list[str]:
-        tools = ["get_credit_profile", "get_credit_metrics", "get_recommendations", "get_inquiries", "get_payment_history"]
-        preferred: list[str] = []
+        preferred: list[str] = ["get_credit_profile", "get_credit_metrics", "get_recommendations"]
         if self._contains_any(normalized_message, ["late", "payment", "delinquency", "missed", "score drop"]):
             preferred.append("get_payment_history")
-        if self._contains_any(normalized_message, ["inquiry", "application", "hard pull", "hard inquiry"]):
+        if self._contains_any(normalized_message, ["inquiry", "inquiries", "application", "hard pull", "hard inquiry"]):
             preferred.append("get_inquiries")
-        if "utilization" in normalized_message:
-            preferred.append("get_credit_metrics")
-        preferred.extend(["get_credit_profile", "get_recommendations"])
+            if "get_payment_history" not in preferred:
+                preferred.append("get_payment_history")
+        if not any(tool_name in preferred for tool_name in ["get_payment_history", "get_inquiries"]):
+            preferred.append("get_payment_history")
         ordered: list[str] = []
-        for tool_name in preferred + tools:
+        for tool_name in preferred:
             if tool_name not in ordered:
                 ordered.append(tool_name)
         return ordered

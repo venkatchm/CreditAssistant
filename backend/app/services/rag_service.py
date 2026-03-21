@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from threading import Lock
 
 from app.core.settings import Settings, get_settings
 from app.retrieval.chunking import SentenceChunker
@@ -26,6 +27,7 @@ class RagService:
         self.embedding_provider = embedding_provider or LocalHashEmbeddingProvider()
         self.min_score = min_score
         self.persistence = build_retrieval_persistence(settings=settings, base_dir=base_dir)
+        self._index_lock = Lock()
         self._pipeline = JsonKnowledgeIngestionPipeline(
             knowledge_path=self.knowledge_path,
             chunker=SentenceChunker(),
@@ -33,7 +35,10 @@ class RagService:
             persistence=self.persistence,
         )
         if not self._has_indexed_chunks():
-            self._pipeline.ingest()
+            with self._index_lock:
+                if not self._has_indexed_chunks():
+                    # Build the index once during warmup instead of letting concurrent requests repeat it.
+                    self._pipeline.ingest()
         self._retriever = PersistentHybridRetriever(
             embedding_provider=self.embedding_provider,
             persistence=self.persistence,
