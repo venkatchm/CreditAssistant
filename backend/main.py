@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.api.routes.chat import router as chat_router
 from app.api.routes.credit import router as credit_router
+from app.api.routes.ingestion import router as ingestion_router
 from app.api.routes.users import router as users_router
 from synthetic.seed_data import seed_data
 
@@ -43,6 +44,7 @@ app.add_middleware(
 app.include_router(users_router)
 app.include_router(credit_router)
 app.include_router(chat_router)
+app.include_router(ingestion_router)
 
 frontend_dir = Path(__file__).resolve().parent.parent / "frontend"
 if frontend_dir.exists():

@@ -12,11 +12,16 @@ def build_retrieval_persistence(settings: Settings, base_dir: Path) -> Retrieval
     if settings.retrieval_backend == "postgres":
         if not settings.retrieval_postgres_dsn:
             raise RuntimeError("RETRIEVAL_POSTGRES_DSN is required when RETRIEVAL_BACKEND=postgres.")
-        migration_sql = (base_dir / "migrations" / "0002_retrieval_schema_postgres.sql").read_text(encoding="utf-8")
+        migrations_dir = base_dir / "migrations"
+        migration_sql = migrations_dir / "0002_retrieval_schema_postgres.sql"
+        pgvector_sql = migrations_dir / "0003_pgvector_native.sql"
+        combined_sql = migration_sql.read_text(encoding="utf-8")
+        if pgvector_sql.exists():
+            combined_sql += "\n" + pgvector_sql.read_text(encoding="utf-8")
         return PostgresRetrievalPersistence(
             dsn=settings.retrieval_postgres_dsn,
             embedding_model=settings.retrieval_embedding_model,
-            migration_sql=migration_sql,
+            migration_sql=combined_sql,
         )
 
     database = RetrievalDatabase(

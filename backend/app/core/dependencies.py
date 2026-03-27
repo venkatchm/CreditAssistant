@@ -4,6 +4,8 @@ from functools import lru_cache
 
 from app.core.settings import get_settings
 from app.gateway.model_gateway import (
+    AnthropicModelGateway,
+    AnthropicModelGatewayConfig,
     LocalModelGateway,
     ModelGateway,
     OpenAIModelGateway,
@@ -13,6 +15,7 @@ from app.gateway.model_gateway import (
 )
 from app.repositories.base import CreditRepository
 from app.repositories.json_credit_repository import JsonCreditRepository
+from app.repositories.postgres_credit_repository import PostgresCreditRepository
 from app.services.agent_orchestrator import AgentOrchestrator
 from app.services.chat_orchestrator import ChatOrchestrator
 from app.services.classifier_service import ClassifierService
@@ -32,7 +35,14 @@ from app.services.user_service import UserService
 
 @lru_cache(maxsize=1)
 def get_credit_repository() -> CreditRepository:
-    # Keep the JSON dataset warm in memory instead of rebuilding repository state per request.
+    settings = get_settings()
+    if settings.credit_data_backend == "postgres":
+        if not settings.retrieval_postgres_dsn:
+            raise RuntimeError("RETRIEVAL_POSTGRES_DSN is required when CREDIT_DATA_BACKEND=postgres.")
+        from pathlib import Path
+        base_dir = Path(__file__).resolve().parents[2]
+        migration_sql = (base_dir / "migrations" / "0004_credit_data_schema.sql").read_text(encoding="utf-8")
+        return PostgresCreditRepository(dsn=settings.retrieval_postgres_dsn, migration_sql=migration_sql)
     return JsonCreditRepository()
 
 
@@ -120,6 +130,15 @@ def get_model_gateway() -> ModelGateway:
                 base_url=settings.model_base_url,
                 api_key=settings.model_api_key,
                 model_name=settings.model_name,
+            )
+        )
+    if settings.model_backend == "anthropic":
+        if not settings.anthropic_api_key:
+            raise RuntimeError("ANTHROPIC_API_KEY is required when MODEL_BACKEND=anthropic.")
+        return AnthropicModelGateway(
+            AnthropicModelGatewayConfig(
+                api_key=settings.anthropic_api_key,
+                model=settings.anthropic_model or "claude-haiku-4-5-20251001",
             )
         )
     return LocalModelGateway()

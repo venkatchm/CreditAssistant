@@ -66,16 +66,26 @@ class ChatOrchestrator:
             analysis=analysis,
         )
         orchestration_duration_ms = int((perf_counter() - orchestration_started_at) * 1000)
+        llm_started_at = perf_counter()
 
         chunk_index = 0
         first_chunk_latency_ms: int | None = None
+        llm_first_chunk_ms: int | None = None
         for chunk in self.agent_orchestrator.response_composer.model_gateway.stream(gateway_request):
             if not chunk:
                 continue
             if first_chunk_latency_ms is None:
                 first_chunk_latency_ms = int((perf_counter() - started_at) * 1000)
+                llm_first_chunk_ms = int((perf_counter() - llm_started_at) * 1000)
             yield build_text_chunk_event(index=chunk_index, delta=chunk)
             chunk_index += 1
+        llm_total_ms = int((perf_counter() - llm_started_at) * 1000)
+        print(
+            f"[TIMING] analysis={analysis_duration_ms}ms  tools+retrieval={orchestration_duration_ms}ms"
+            f"  llm_ttft={llm_first_chunk_ms}ms  llm_total={llm_total_ms}ms"
+            f"  total={int((perf_counter() - started_at) * 1000)}ms",
+            flush=True,
+        )
         yield build_end_event(
             query_type=plan.query_type,
             execution_mode=plan.execution_mode,

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from json import JSONDecoder
@@ -10,10 +11,17 @@ from pydantic import BaseModel, Field
 
 from app.schemas.chat import AgentAction, EvidenceItem, ExecutionPlan
 
+logger = logging.getLogger(__name__)
+
 try:
     from openai import OpenAI
 except ImportError:  # pragma: no cover
     OpenAI = None
+
+try:
+    import anthropic as anthropic_sdk
+except ImportError:  # pragma: no cover
+    anthropic_sdk = None
 
 
 class GeneratedAnswerPayload(BaseModel):
@@ -332,6 +340,7 @@ class OpenAIModelGateway(ModelGateway):
 
     def generate(self, payload: ModelGatewayRequest) -> GeneratedAnswerPayload:
         response = self._responses_create(payload, stream=False, response_format="structured")
+        self._log_cache_usage(getattr(response, "usage", None))
         output_text = getattr(response, "output_text", None)
         if not output_text:
             raise RuntimeError("OpenAI model gateway returned no text output.")
@@ -339,13 +348,104 @@ class OpenAIModelGateway(ModelGateway):
         return GeneratedAnswerPayload(**normalize_generated_payload(parsed, payload))
 
     def stream(self, payload: ModelGatewayRequest):
-        stream = self._responses_create(payload, stream=True, response_format="plain_text")
+        import time
+        started_at = time.perf_counter()
+
+        try:
+            stream = self._responses_create(payload, stream=True, response_format="plain_text")
+        except Exception as exc:
+            logger.error("openai_responses_create_failed error=%s", exc)
+            print(f"[ERROR] openai _responses_create failed: {exc}", flush=True)
+            yield from self._empty_response_fallback(payload)
+            return
+
+        if stream is None:
+            logger.error("openai_responses_create_returned_none")
+            print("[ERROR] openai _responses_create returned None", flush=True)
+            yield from self._empty_response_fallback(payload)
+            return
+
+        first_chunk_at: float | None = None
+        chunks_yielded = 0
+        completed_response = None
         for event in stream:
             event_type = getattr(event, "type", "")
-            if event_type == "response.output_text.delta":
+            if event_type in ("response.completed", "response.incomplete"):
+                resp = getattr(event, "response", None)
+                if event_type == "response.completed":
+                    usage = getattr(resp, "usage", None)
+                    self._log_cache_usage(usage)
+                    if usage is not None:
+                        total_ms = int((time.perf_counter() - started_at) * 1000)
+                        ttft_ms = int((first_chunk_at - started_at) * 1000) if first_chunk_at else 0
+                        output_tokens = getattr(usage, "output_tokens", 0)
+                        tps = round(output_tokens / (total_ms / 1000), 1) if total_ms else 0
+                        print(
+                            f"[SPEED] ttft={ttft_ms}ms  total={total_ms}ms  "
+                            f"output_tokens={output_tokens}  tokens/sec={tps}",
+                            flush=True,
+                        )
+                else:
+                    finish = getattr(resp, "incomplete_details", None)
+                    reason = getattr(finish, "reason", "max_output_tokens") if finish else "max_output_tokens"
+                    print(f"[WARN] openai response.incomplete reason={reason}", flush=True)
+                    logger.warning("openai_stream_incomplete reason=%s", reason)
+                completed_response = resp
+            elif event_type == "response.failed":
+                error = getattr(getattr(event, "response", None), "error", None)
+                msg = getattr(error, "message", str(error)) if error else "unknown"
+                print(f"[ERROR] openai response.failed: {msg}", flush=True)
+                logger.error("openai_stream_failed error=%s", msg)
+                raise RuntimeError(f"OpenAI response failed: {msg}")
+            elif event_type == "response.output_text.delta":
                 delta = getattr(event, "delta", "")
                 if delta:
+                    if first_chunk_at is None:
+                        first_chunk_at = time.perf_counter()
+                    chunks_yielded += 1
                     yield delta
+
+        # Fallback: if no text deltas were streamed, try to extract text from
+        # the completed/incomplete response object (handles content-filter
+        # refusals, non-text output blocks, and max_output_tokens edge cases).
+        if chunks_yielded == 0:
+            if completed_response is not None:
+                fallback_text = getattr(completed_response, "output_text", None) or ""
+                if not fallback_text:
+                    for output_item in (getattr(completed_response, "output", None) or []):
+                        for content in (getattr(output_item, "content", None) or []):
+                            text = getattr(content, "text", "")
+                            if text:
+                                fallback_text = text
+                                break
+                        if fallback_text:
+                            break
+                if fallback_text:
+                    print("[WARN] no stream deltas received; using fallback from response object", flush=True)
+                    logger.warning("openai_stream_no_deltas_fallback len=%d", len(fallback_text))
+                    yield fallback_text
+                    return
+            print("[ERROR] openai stream completed with no text output at all", flush=True)
+            logger.error("openai_stream_empty_response")
+            yield from self._empty_response_fallback(payload)
+
+    def _log_cache_usage(self, usage: object) -> None:
+        if usage is None:
+            return
+        total = getattr(usage, "input_tokens", None)
+        details = getattr(usage, "input_tokens_details", None)
+        cached = getattr(details, "cached_tokens", 0) if details else 0
+        output = getattr(usage, "output_tokens", None)
+        if total is not None:
+            saved_pct = round(cached / total * 100) if total else 0
+            msg = f"[CACHE] openai  input={total} cached={cached} ({saved_pct}% from cache) output={output}"
+            print(msg, flush=True)
+            logger.info(msg)
+
+    def _empty_response_fallback(self, payload: ModelGatewayRequest):
+        """Yield a grounded fallback answer when the model returned no text."""
+        result = fallback_generated_payload("", payload)
+        yield result["message"]
 
     def decide_action(
         self,
@@ -360,8 +460,35 @@ class OpenAIModelGateway(ModelGateway):
         return LocalModelGateway().decide_action(payload, available_tools, completed_tools, retrieval_done, retrieval_attempts, last_retrieval_confidence)
 
     def _responses_create(self, payload: ModelGatewayRequest, stream: bool, response_format: str):
+        """
+        OpenAI prompt caching is automatic — no explicit cache_control needed.
+        It caches any prompt prefix longer than 1024 tokens that is identical
+        across requests. Cache hits appear in usage.input_tokens_details.cached_tokens.
+
+        To maximise cache hits the input is split into two content blocks:
+
+          Block 1 — evidence context (cacheable prefix):
+            Contains tool results, retrieval knowledge, plan and grounding rules.
+            This is identical for follow-up questions about the same customer,
+            so OpenAI will serve it from cache after the first request.
+
+          Block 2 — user question (dynamic suffix):
+            Changes every request — kept separate so it does not invalidate
+            the cached prefix above it.
+
+        Before this change the entire payload was one JSON blob that included
+        the user message, meaning the prefix was never identical and caching
+        never triggered.
+        """
+        evidence_context = self._build_evidence_context(payload)
+        user_content: list[dict] = []
+        if evidence_context:
+            user_content.append({"type": "input_text", "text": evidence_context})
+        user_content.append({"type": "input_text", "text": payload.user_message})
+
         return self.client.responses.create(
             model=self.config.model,
+            max_output_tokens=1024,
             input=[
                 {
                     "role": "system",
@@ -374,16 +501,33 @@ class OpenAIModelGateway(ModelGateway):
                 },
                 {
                     "role": "user",
-                    "content": [
-                        {
-                            "type": "input_text",
-                            "text": json.dumps(payload.model_dump(mode="json"), ensure_ascii=True),
-                        }
-                    ],
+                    "content": user_content,
                 },
             ],
             stream=stream,
         )
+
+    def _build_evidence_context(self, payload: ModelGatewayRequest) -> str:
+        """Serialise all grounding context into a stable text block that sits
+        before the user question. Keeping this block identical across follow-up
+        questions about the same customer is what lets OpenAI's automatic prefix
+        cache kick in."""
+        parts: list[str] = []
+        if payload.tool_context:
+            parts.append(f"[Tool results]\n{json.dumps(payload.tool_context, ensure_ascii=True)}")
+        if payload.retrieval_context:
+            joined = "\n".join(f"- {chunk}" for chunk in payload.retrieval_context)
+            parts.append(f"[Knowledge base]\n{joined}")
+        if payload.evidence:
+            lines = [f"- {item.title}: {item.detail}" for item in payload.evidence]
+            parts.append("[Evidence]\n" + "\n".join(lines))
+        if payload.grounding_rules:
+            rules = "\n".join(f"- {rule}" for rule in payload.grounding_rules)
+            parts.append(f"[Grounding rules]\n{rules}")
+        if payload.user_attributes:
+            attrs = ", ".join(f"{k}={v}" for k, v in payload.user_attributes.items())
+            parts.append(f"[User attributes] {attrs}")
+        return "\n\n".join(parts)
 
     def _build_answer_system_prompt(self, response_format: str) -> str:
         shared_rules = (
@@ -396,14 +540,13 @@ class OpenAIModelGateway(ModelGateway):
             return (
                 f"{shared_rules}"
                 "Return only natural-language answer text for the user. "
-                "Do not return JSON. "
-                "Do not use markdown code fences. "
-                "Write a complete answer in plain English, not a single sentence. "
-                "Start with a direct answer to the user's question. "
-                "Then briefly explain the main drivers or reasons when relevant. "
-                "Include 2 to 4 short actionable recommendations when relevant. "
-                "Prefer short paragraphs or simple bullet points. "
-                "Keep the response clear, grounded, and directly actionable."
+                "Do not return JSON or markdown code fences. "
+                "Write like a human advisor sending a chat message — not a report. "
+                "Keep the total response under 150 words. "
+                "Start with one direct sentence that answers the question. "
+                "Then give 2 to 4 short bullet points for key reasons or actions. "
+                "No long paragraphs. No filler phrases like 'Great question' or 'In summary'. "
+                "Be specific — use the actual numbers from the evidence."
             )
         return (
             f"{shared_rules}"
@@ -418,6 +561,174 @@ class OpenAIModelGateway(ModelGateway):
             if extracted is not None:
                 return extracted
             return fallback_generated_payload(output_text=output_text, payload=payload)
+
+
+@dataclass(frozen=True)
+class AnthropicModelGatewayConfig:
+    api_key: str
+    model: str = "claude-haiku-4-5-20251001"
+
+
+class AnthropicModelGateway(ModelGateway):
+    """
+    Anthropic Claude gateway with explicit prompt caching.
+
+    Caching strategy:
+      1. System prompt           — always cached (static instructions, never changes)
+      2. Evidence / tool context — cached per request (stable within a session,
+                                   saves tokens on follow-up questions about the
+                                   same customer)
+      3. User message            — never cached (changes every request)
+
+    Anthropic caches any block marked with cache_control for 5 minutes.
+    Minimum cacheable size: 1024 tokens (Haiku/Sonnet), 2048 (Opus).
+    Savings: up to 90% cost reduction and lower latency on cache hits.
+    """
+
+    SYSTEM_PROMPT = (
+        "You are a credit assistant answer generator. "
+        "Use only the supplied evidence. "
+        "Personal credit facts must come from tool evidence. "
+        "Educational explanations may come from retrieved evidence. "
+        "Return only natural-language answer text. "
+        "Do not return JSON or markdown code fences. "
+        "Write like a human advisor sending a chat message — not a report. "
+        "Keep the total response under 150 words. "
+        "Start with one direct sentence that answers the question. "
+        "Then give 2 to 4 short bullet points for key reasons or actions. "
+        "No long paragraphs. No filler phrases like 'Great question' or 'In summary'. "
+        "Be specific — use the actual numbers from the evidence."
+    )
+
+    def __init__(self, config: AnthropicModelGatewayConfig) -> None:
+        if anthropic_sdk is None:
+            raise RuntimeError("anthropic SDK is required. Run: pip install anthropic")
+        self.client = anthropic_sdk.Anthropic(api_key=config.api_key)
+        self.config = config
+
+    # ── Public interface ────────────────────────────────────────────────────
+
+    def generate(self, payload: ModelGatewayRequest) -> GeneratedAnswerPayload:
+        response = self.client.messages.create(
+            model=self.config.model,
+            max_tokens=1024,
+            system=self._cached_system(),
+            messages=self._build_messages(payload),
+        )
+        self._log_cache_usage(response.usage)
+        text = response.content[0].text if response.content else ""
+        return GeneratedAnswerPayload(message=text)
+
+    def stream(self, payload: ModelGatewayRequest):
+        with self.client.messages.stream(
+            model=self.config.model,
+            max_tokens=1024,
+            system=self._cached_system(),
+            messages=self._build_messages(payload),
+        ) as stream:
+            for text in stream.text_stream:
+                if text:
+                    yield text
+            self._log_cache_usage(stream.get_final_message().usage)
+
+    def _log_cache_usage(self, usage: object) -> None:
+        if usage is None:
+            return
+        input_tokens   = getattr(usage, "input_tokens", 0)
+        cache_created  = getattr(usage, "cache_creation_input_tokens", 0)
+        cache_read     = getattr(usage, "cache_read_input_tokens", 0)
+        output_tokens  = getattr(usage, "output_tokens", 0)
+        total_input    = input_tokens + cache_created + cache_read
+        saved_pct      = round(cache_read / total_input * 100) if total_input else 0
+        logger.info(
+            "anthropic_cache  input=%s cache_created=%s cache_read=%s (%s%% served from cache) output=%s",
+            input_tokens, cache_created, cache_read, saved_pct, output_tokens,
+        )
+
+    def decide_action(
+        self,
+        payload: ModelGatewayRequest,
+        available_tools: list[str],
+        completed_tools: list[str],
+        retrieval_done: bool,
+        retrieval_attempts: int = 0,
+        last_retrieval_confidence: float = 0.0,
+    ) -> AgentAction:
+        # Use deterministic local planning — saves one full model round-trip.
+        return LocalModelGateway().decide_action(
+            payload, available_tools, completed_tools,
+            retrieval_done, retrieval_attempts, last_retrieval_confidence,
+        )
+
+    # ── Cache helpers ───────────────────────────────────────────────────────
+
+    def _cached_system(self) -> list[dict]:
+        """
+        System prompt as a content block with cache_control.
+        Anthropic caches this for 5 minutes across all requests that send
+        the identical text — zero re-encoding cost on cache hits.
+        """
+        return [
+            {
+                "type": "text",
+                "text": self.SYSTEM_PROMPT,
+                "cache_control": {"type": "ephemeral"},
+            }
+        ]
+
+    def _build_messages(self, payload: ModelGatewayRequest) -> list[dict]:
+        """
+        Build the user turn with two content blocks:
+
+        Block 1 — evidence context (cached):
+          Contains tool results, retrieval knowledge, grounding rules.
+          Marked cache_control so follow-up questions about the same customer
+          reuse this block without re-sending thousands of tokens.
+
+        Block 2 — user message (not cached):
+          The actual question. Changes every request so caching would never hit.
+        """
+        content: list[dict] = []
+
+        evidence_text = self._format_evidence(payload)
+        if evidence_text:
+            content.append(
+                {
+                    "type": "text",
+                    "text": evidence_text,
+                    # Cache the evidence block — stable within a customer session.
+                    "cache_control": {"type": "ephemeral"},
+                }
+            )
+
+        content.append({"type": "text", "text": payload.user_message})
+
+        return [{"role": "user", "content": content}]
+
+    def _format_evidence(self, payload: ModelGatewayRequest) -> str:
+        """Serialise all grounding context into a single text block."""
+        parts: list[str] = []
+
+        if payload.tool_context:
+            parts.append(f"[Tool results]\n{json.dumps(payload.tool_context, ensure_ascii=False)}")
+
+        if payload.retrieval_context:
+            joined = "\n".join(f"- {chunk}" for chunk in payload.retrieval_context)
+            parts.append(f"[Knowledge base]\n{joined}")
+
+        if payload.evidence:
+            lines = [f"- {item.title}: {item.detail}" for item in payload.evidence]
+            parts.append(f"[Evidence]\n" + "\n".join(lines))
+
+        if payload.grounding_rules:
+            rules = "\n".join(f"- {rule}" for rule in payload.grounding_rules)
+            parts.append(f"[Grounding rules]\n{rules}")
+
+        if payload.user_attributes:
+            attrs = ", ".join(f"{k}={v}" for k, v in payload.user_attributes.items())
+            parts.append(f"[User attributes] {attrs}")
+
+        return "\n\n".join(parts)
 
 
 def _dedupe(items: list[str]) -> list[str]:

@@ -134,12 +134,14 @@ class PostgresRetrievalPersistence(RetrievalPersistenceBackend):
                     )
 
                 for chunk, embedding in zip(chunks, embeddings):
+                    embedding_str = "[" + ",".join(str(v) for v in embedding) + "]"
                     cursor.execute(
                         """
                         INSERT INTO retrieval_chunk_embeddings (
-                            chunk_id, embedding_model, embedding_dimensions, embedding_json, created_at
+                            chunk_id, embedding_model, embedding_dimensions, embedding_json, embedding, created_at
                         ) VALUES (
-                            %(chunk_id)s, %(embedding_model)s, %(embedding_dimensions)s, %(embedding_json)s, %(created_at)s
+                            %(chunk_id)s, %(embedding_model)s, %(embedding_dimensions)s, %(embedding_json)s,
+                            %(embedding)s::vector, %(created_at)s
                         )
                         """,
                         {
@@ -147,11 +149,13 @@ class PostgresRetrievalPersistence(RetrievalPersistenceBackend):
                             "embedding_model": self.embedding_model,
                             "embedding_dimensions": len(embedding),
                             "embedding_json": json.dumps(embedding),
+                            "embedding": embedding_str,
                             "created_at": now,
                         },
                     )
 
     def vector_search(self, query_embedding: list[float], top_k: int) -> list[RetrievedChunk]:
+        query_vec = "[" + ",".join(str(v) for v in query_embedding) + "]"
         with self.connect() as connection:
             with connection.cursor() as cursor:
                 cursor.execute(
@@ -165,37 +169,34 @@ class PostgresRetrievalPersistence(RetrievalPersistenceBackend):
                         c.source_name,
                         c.effective_date,
                         c.version,
-                        e.embedding_json
+                        1 - (e.embedding <=> %(query_vec)s::vector) AS score
                     FROM retrieval_chunk_embeddings e
                     JOIN retrieval_chunks c ON c.id = e.chunk_id
                     JOIN retrieval_documents d ON d.id = c.document_id
                     WHERE e.embedding_model = %(embedding_model)s
+                      AND e.embedding IS NOT NULL
+                    ORDER BY e.embedding <=> %(query_vec)s::vector
+                    LIMIT %(limit)s
                     """,
-                    {"embedding_model": self.embedding_model},
+                    {"query_vec": query_vec, "embedding_model": self.embedding_model, "limit": top_k},
                 )
                 rows = cursor.fetchall()
-        ranked: list[RetrievedChunk] = []
-        for row in rows:
-            raw_embedding = row["embedding_json"]
-            embedding = json.loads(raw_embedding) if isinstance(raw_embedding, str) else raw_embedding
-            score = cosine_similarity(query_embedding, embedding)
-            ranked.append(
-                RetrievedChunk(
-                    chunk_id=str(row["chunk_id"]),
-                    doc_id=str(row["doc_id"]),
-                    topic=row["topic"],
-                    title=row["title"],
-                    content=row["chunk_text"],
-                    source=row["source_name"],
-                    score=score,
-                    strategy="vector",
-                    score_breakdown={"vector": round(score, 4)},
-                    effective_date=str(row["effective_date"]) if row["effective_date"] else None,
-                    version=row["version"],
-                )
+        return [
+            RetrievedChunk(
+                chunk_id=str(row["chunk_id"]),
+                doc_id=str(row["doc_id"]),
+                topic=row["topic"],
+                title=row["title"],
+                content=row["chunk_text"],
+                source=row["source_name"],
+                score=float(row["score"]),
+                strategy="vector",
+                score_breakdown={"vector": round(float(row["score"]), 4)},
+                effective_date=str(row["effective_date"]) if row["effective_date"] else None,
+                version=row["version"],
             )
-        ranked.sort(key=lambda item: item.score, reverse=True)
-        return ranked[:top_k]
+            for row in rows
+        ]
 
     def lexical_search(self, query: str, top_k: int) -> list[RetrievedChunk]:
         ts_query = normalize_match_query(query).replace(" OR ", " | ")

@@ -13,6 +13,8 @@ services:
     volumes:
       - retrieval_db_data:/var/lib/postgresql/data
       - ./backend/migrations/0002_retrieval_schema_postgres.sql:/docker-entrypoint-initdb.d/0002_retrieval_schema_postgres.sql:ro
+      - ./backend/migrations/0003_pgvector_native.sql:/docker-entrypoint-initdb.d/0003_pgvector_native.sql:ro
+      - ./backend/migrations/0004_credit_data_schema.sql:/docker-entrypoint-initdb.d/0004_credit_data_schema.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U credit_user -d credit_assistant"]
       interval: 5s

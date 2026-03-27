@@ -1,0 +1,26 @@
+# fly.toml app configuration file generated for credit-assistant on 2026-03-28T01:40:05+05:30
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'credit-assistant'
+primary_region = 'sjc'
+
+[build]
+
+[env]
+  APP_ENV = 'production'
+  PYTHONPATH = '.'
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[vm]]
+  size = 'shared-cpu-1x'
+  memory = '512mb'
+  cpus = 1
+  memory_mb = 512
