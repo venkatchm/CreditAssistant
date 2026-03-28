@@ -14,9 +14,11 @@ from app.retrieval.sqlite_store import build_search_text, normalize_match_query
 try:
     import psycopg
     from psycopg.rows import dict_row
+    from psycopg_pool import ConnectionPool
 except ImportError:  # pragma: no cover
     psycopg = None
     dict_row = None
+    ConnectionPool = None
 
 
 def utc_now_iso() -> str:
@@ -29,17 +31,19 @@ class PostgresRetrievalPersistence(RetrievalPersistenceBackend):
             raise RuntimeError("psycopg is required for the postgres retrieval backend.")
         self.dsn = dsn
         self.embedding_model = embedding_model
+        self._pool = ConnectionPool(
+            dsn,
+            min_size=1,
+            max_size=5,
+            kwargs={"row_factory": dict_row},
+        )
         if migration_sql:
             self._apply_migration(migration_sql)
 
     @contextmanager
     def connect(self):
-        connection = psycopg.connect(self.dsn, row_factory=dict_row)
-        try:
+        with self._pool.connection() as connection:
             yield connection
-            connection.commit()
-        finally:
-            connection.close()
 
     def replace_documents(self, documents: list[SourceDocument], chunks: list[ChunkedDocument], embeddings: list[list[float]]) -> None:
         now = utc_now_iso()

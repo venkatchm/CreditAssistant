@@ -244,7 +244,9 @@ class AgentOrchestrator:
             self._append_decision_step(working_trace, action, tool_results, retrieval_result)
             if emit_event is not None:
                 emit_event("tool_start", {"tool_name": tool_name, "reasoning": action.reasoning})
+            _tool_t0 = perf_counter()
             tool_result = self._run_tool(tool_name=tool_name, user_id=user_id, trace=working_trace)
+            print(f"[STEP] tool={tool_name}  {int((perf_counter() - _tool_t0) * 1000)}ms", flush=True)
             tool_results[tool_name] = tool_result
             if emit_event is not None:
                 emit_event(
@@ -274,7 +276,9 @@ class AgentOrchestrator:
                     "retrieval_start",
                     {"query": retrieval_query, "reasoning": action.reasoning, "attempt": retrieval_attempt + 1},
                 )
+            _ret_t0 = perf_counter()
             retrieval_result = self._run_retrieval(retrieval_query, working_trace)
+            print(f"[STEP] retrieval  {int((perf_counter() - _ret_t0) * 1000)}ms", flush=True)
             if emit_event is not None:
                 emit_event(
                     "retrieval_result",
@@ -287,7 +291,7 @@ class AgentOrchestrator:
                     },
                 )
             payload = self._refresh_gateway_payload(payload, tool_results, retrieval_result)
-            if retrieval_result.used and retrieval_result.top_confidence >= 0.35:
+            if retrieval_result.used and retrieval_result.top_confidence >= 0.01:
                 break
 
         final_action = AgentAction(
@@ -378,7 +382,7 @@ class AgentOrchestrator:
                 },
             )
             payload = self._refresh_gateway_payload(payload, tool_results, retrieval_result)
-            if retrieval_result.used and retrieval_result.top_confidence >= 0.35:
+            if retrieval_result.used and retrieval_result.top_confidence >= 0.01:
                 break
 
         final_action = AgentAction(

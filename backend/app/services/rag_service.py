@@ -18,7 +18,7 @@ class RagService:
         knowledge_path: Path | None = None,
         db_path: Path | None = None,
         embedding_provider: EmbeddingProvider | None = None,
-        min_score: float = 0.2,
+        min_score: float = 0.005,
     ) -> None:
         base_dir = Path(__file__).resolve().parents[2]
         settings = self._resolve_settings(db_path=db_path, defaults=get_settings())
