@@ -1,0 +1,102 @@
+[
+  {
+    "question": "What is credit utilization and why does it matter?",
+    "ground_truth": "Credit utilization is the ratio of your credit card balances to your credit limits. It is one of the most important factors in your credit score, typically accounting for about 30% of your score. Experts recommend keeping utilization below 30%, and below 10% for the best scores.",
+    "user_id": "user_003"
+  },
+  {
+    "question": "How long do hard inquiries stay on my credit report?",
+    "ground_truth": "Hard inquiries remain on your credit report for two years. However, they typically only affect your credit score for about 12 months. Multiple inquiries for the same type of loan (mortgage, auto) within a short window (14-45 days) are usually counted as a single inquiry.",
+    "user_id": "user_003"
+  },
+  {
+    "question": "What is the difference between a hard inquiry and a soft inquiry?",
+    "ground_truth": "A hard inquiry occurs when a lender checks your credit for a lending decision, such as applying for a credit card or loan. It can temporarily lower your score by a few points. A soft inquiry occurs when you check your own credit or when a company checks your credit for pre-approval offers. Soft inquiries do not affect your credit score.",
+    "user_id": "user_003"
+  },
+  {
+    "question": "What are the main factors that affect my credit score?",
+    "ground_truth": "The main factors that affect your credit score are: payment history (35%), amounts owed or credit utilization (30%), length of credit history (15%), credit mix or types of credit (10%), and new credit or recent inquiries (10%). Payment history and credit utilization together account for about 65% of your score.",
+    "user_id": "user_003"
+  },
+  {
+    "question": "How can I improve my credit score?",
+    "ground_truth": "To improve your credit score: pay all bills on time, reduce credit card balances to lower your utilization ratio below 30%, avoid opening too many new accounts at once, keep old accounts open to maintain credit history length, check your credit report for errors and dispute any inaccuracies, and consider becoming an authorized user on a family member's account with good history.",
+    "user_id": "user_003"
+  },
+  {
+    "question": "What is the Fair Credit Reporting Act (FCRA)?",
+    "ground_truth": "The Fair Credit Reporting Act (FCRA) is a federal law that regulates how consumer credit information is collected, shared, and used. It gives consumers the right to access their credit reports, dispute inaccurate information, and requires credit bureaus to investigate disputes within 30 days. It also limits who can access your credit report.",
+    "user_id": "user_003"
+  },
+  {
+    "question": "What should I do if I find an error on my credit report?",
+    "ground_truth": "If you find an error on your credit report, you should file a dispute with the credit bureau that shows the error. You can dispute online, by mail, or by phone. The bureau must investigate within 30 days. You should also contact the company that provided the incorrect information. Keep copies of all correspondence and supporting documents.",
+    "user_id": "user_003"
+  },
+  {
+    "question": "What is a good credit score?",
+    "ground_truth": "Credit scores typically range from 300 to 850. A score of 670-739 is considered good, 740-799 is very good, and 800 or above is exceptional. A score below 580 is considered poor, and 580-669 is fair. Higher scores generally qualify you for better interest rates and loan terms.",
+    "user_id": "user_003"
+  },
+  {
+    "question": "How does payment history affect my credit score?",
+    "ground_truth": "Payment history is the most important factor in your credit score, accounting for about 35% of your FICO score. Late payments, collections, bankruptcies, and other negative marks can significantly lower your score. A single late payment can drop your score by 60-110 points. Late payments stay on your report for 7 years.",
+    "user_id": "user_003"
+  },
+  {
+    "question": "What is a credit freeze and how does it work?",
+    "ground_truth": "A credit freeze restricts access to your credit report, making it harder for identity thieves to open new accounts in your name. You can place a freeze for free with each of the three major credit bureaus (Equifax, Experian, TransUnion). When you need to apply for credit, you can temporarily lift the freeze. A freeze does not affect your credit score.",
+    "user_id": "user_003"
+  },
+  {
+    "question": "What is the difference between a credit report and a credit score?",
+    "ground_truth": "A credit report is a detailed record of your credit history, including accounts, payment history, inquiries, and public records. A credit score is a numerical summary calculated from the information in your credit report. You can have different scores from different scoring models (FICO, VantageScore) and from different bureaus.",
+    "user_id": "user_003"
+  },
+  {
+    "question": "How often should I check my credit report?",
+    "ground_truth": "You should check your credit report at least once a year. You are entitled to a free credit report from each of the three major bureaus annually through AnnualCreditReport.com. Many experts recommend checking more frequently, such as every few months, to catch errors or signs of identity theft early.",
+    "user_id": "user_003"
+  },
+  {
+    "question": "What is debt-to-income ratio?",
+    "ground_truth": "Debt-to-income ratio (DTI) is the percentage of your gross monthly income that goes toward paying debts. It is calculated by dividing your total monthly debt payments by your gross monthly income. Lenders use DTI to evaluate your ability to manage monthly payments. Most lenders prefer a DTI below 36%, and some mortgage programs require below 43%.",
+    "user_id": "user_003"
+  },
+  {
+    "question": "Can closing a credit card hurt my credit score?",
+    "ground_truth": "Yes, closing a credit card can hurt your credit score in two ways. First, it reduces your total available credit, which can increase your credit utilization ratio. Second, if it is one of your oldest accounts, it can eventually shorten your average credit history length. It is generally better to keep unused cards open with zero balance.",
+    "user_id": "user_003"
+  },
+  {
+    "question": "What are my rights under the FCRA when disputing errors?",
+    "ground_truth": "Under the FCRA, you have the right to dispute any inaccurate information on your credit report. The credit bureau must investigate your dispute within 30 days, notify the information provider, and remove or correct information that cannot be verified. You must be notified of the results, and if the dispute results in a change, you can request a free copy of your updated report.",
+    "user_id": "user_003"
+  },
+  {
+    "question": "What is an authorized user?",
+    "ground_truth": "An authorized user is someone who is added to another person's credit card account. The authorized user can use the card but is not legally responsible for the debt. The account's payment history may appear on the authorized user's credit report, which can help build credit if the primary cardholder has good payment history.",
+    "user_id": "user_003"
+  },
+  {
+    "question": "How long do negative items stay on my credit report?",
+    "ground_truth": "Most negative items stay on your credit report for 7 years from the date of the first delinquency. This includes late payments, collections, and charge-offs. Bankruptcies can remain for 7-10 years (Chapter 13 for 7 years, Chapter 7 for 10 years). Hard inquiries remain for 2 years. Tax liens can remain for 7 years after being paid.",
+    "user_id": "user_003"
+  },
+  {
+    "question": "What is a secured credit card?",
+    "ground_truth": "A secured credit card requires a cash deposit as collateral, which typically becomes your credit limit. It is designed for people with no credit or poor credit who want to build or rebuild their credit history. The card works like a regular credit card, and payments are reported to the credit bureaus. After demonstrating responsible use, you may qualify for an unsecured card.",
+    "user_id": "user_003"
+  },
+  {
+    "question": "What is the Truth in Lending Act (TILA)?",
+    "ground_truth": "The Truth in Lending Act (TILA) is a federal law that requires lenders to disclose key terms and costs of credit to borrowers before they agree to the loan. This includes the annual percentage rate (APR), total costs, payment schedule, and other terms. TILA helps consumers compare different credit offers and make informed borrowing decisions.",
+    "user_id": "user_003"
+  },
+  {
+    "question": "How does applying for multiple credit cards affect my score?",
+    "ground_truth": "Each credit card application triggers a hard inquiry, which can lower your score by a few points. Multiple applications in a short period can have a cumulative negative effect and signal to lenders that you may be a higher risk borrower. Unlike mortgage or auto loan inquiries, credit card inquiries are not grouped together for scoring purposes.",
+    "user_id": "user_003"
+  }
+]

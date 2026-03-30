@@ -24,7 +24,8 @@ class ExecutionPlanner:
                 execution_mode="FAST_RECOMMENDATION",
                 steps=["query_analysis", "agent_action_loop", "compose_response"],
                 tool_names=tool_names,
-                retrieval_needed=False,
+                retrieval_needed=True,
+                retrieval_query=message,
                 response_strategy="tool_only_recommendation_response",
                 max_iterations=3,
             )
