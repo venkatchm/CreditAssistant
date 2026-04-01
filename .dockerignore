@@ -1,0 +1,12 @@
+.venv/
+.git/
+.env
+__pycache__/
+*.pyc
+*.sqlite3
+backend/data/cfpb_cache/
+backend/data/retrieval.sqlite3
+.claude/
+docs/
+*.md
+!frontend/README.md

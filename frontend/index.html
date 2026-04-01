@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CreditAssistant</title>
+    <meta name="description" content="AI-powered credit advisory chat interface." />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <!-- Mobile sidebar overlay -->
+      <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+      <!-- Left Sidebar -->
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+          <div class="brand">
+            <div class="brand-avatar">CA</div>
+            <div class="brand-text">
+              <span class="brand-name">CreditAssistant</span>
+              <span class="brand-tagline">Advisor Console</span>
+            </div>
+          </div>
+          <button class="icon-btn sidebar-close-btn" id="sidebar-close" title="Close">✕</button>
+        </div>
+
+        <details class="config-drawer">
+          <summary class="config-summary">
+            <span class="config-summary-icon">⚙</span>
+            <span>Settings</span>
+          </summary>
+          <div class="config-body">
+            <label class="field-label" for="api-base">Backend URL</label>
+            <div class="config-row">
+              <input id="api-base" class="text-input" type="url" placeholder="http://localhost:8000" />
+              <button id="save-config" class="btn btn-accent btn-sm" type="button">Save</button>
+            </div>
+            <p id="connection-status" class="conn-status">Checking backend...</p>
+          </div>
+        </details>
+
+        <div class="customers-section">
+          <div class="section-row">
+            <span class="section-label">Customers</span>
+            <button id="refresh-users" class="icon-btn" type="button" title="Refresh list">↺</button>
+          </div>
+          <div id="user-list" class="user-list" aria-live="polite"></div>
+        </div>
+      </aside>
+
+      <!-- Main Chat Area -->
+      <main class="chat-main">
+        <header class="chat-header">
+          <div class="header-left">
+            <button class="icon-btn hamburger-btn" id="hamburger" title="Toggle sidebar">☰</button>
+            <div class="header-info">
+              <h1 id="hero-title" class="header-title">Select a customer to begin</h1>
+              <p id="hero-subtitle" class="header-sub">The assistant will use the selected user ID when calling the backend.</p>
+            </div>
+          </div>
+          <div class="header-right">
+            <span id="chat-status" class="status-chip idle">Idle</span>
+            <span id="selected-user-chip" class="persona-chip">No user</span>
+            <button id="load-profile" class="btn btn-outline btn-sm" type="button">Reload profile</button>
+            <button id="clear-chat" class="btn btn-ghost btn-sm" type="button">Clear chat</button>
+            <button class="btn btn-outline btn-sm" id="activity-toggle" type="button" title="Toggle streaming activity">⚡ Activity</button>
+            <button class="btn btn-outline btn-sm panel-toggle-btn" id="panel-toggle" type="button">Profile ›</button>
+          </div>
+        </header>
+
+        <!-- Message Log — this is the scroll container, app.js scrolls it directly -->
+        <div id="chat-log" class="chat-log" aria-live="polite"></div>
+
+        <!-- Footer: prompt chips + composer -->
+        <div class="chat-footer">
+          <div id="prompt-list" class="prompt-list"></div>
+          <form id="chat-form" class="composer">
+            <div class="composer-wrap">
+              <label class="sr-only" for="chat-input">Ask a question</label>
+              <textarea
+                id="chat-input"
+                class="composer-input"
+                rows="1"
+                placeholder="Ask about credit score drivers, utilization, payment history..."
+              ></textarea>
+              <div class="composer-actions">
+                <button id="stop-stream" class="btn btn-stop" type="button" disabled title="Stop streaming">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+                    <rect x="2" y="2" width="10" height="10" rx="2"/>
+                  </svg>
+                </button>
+                <button id="send-message" class="btn btn-send" type="submit" title="Send message">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M8 2L8 13M8 2L4 6M8 2L12 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <p class="composer-hint">Enter to send · Shift+Enter for new line</p>
+          </form>
+        </div>
+
+        <!-- Activity Drawer — below the composer -->
+        <div class="activity-drawer" id="activity-drawer">
+          <div class="activity-drawer-hd">
+            <div class="activity-drawer-title">
+              <span class="activity-pulse" id="activity-pulse"></span>
+              <span>Streaming Activity</span>
+              <span class="activity-count" id="activity-count"></span>
+            </div>
+            <button class="icon-btn" id="activity-close" title="Close">✕</button>
+          </div>
+          <div id="activity-feed" class="activity-feed empty-state" aria-live="polite">
+            Activity appears during requests.
+          </div>
+        </div>
+      </main>
+
+      <!-- Right Profile Panel -->
+      <aside class="profile-panel" id="profile-panel">
+        <div class="panel-hd">
+          <h2 class="panel-hd-title">Customer Profile</h2>
+          <button class="icon-btn" id="panel-close" title="Close panel">✕</button>
+        </div>
+        <div class="panel-body">
+          <div class="panel-section">
+            <h3 class="panel-section-label">Snapshot</h3>
+            <div id="profile-summary" class="summary-grid empty-state">
+              Choose a customer to load their profile.
+            </div>
+          </div>
+          <div class="panel-section">
+            <h3 class="panel-section-label">Key Signals</h3>
+            <div id="signal-list" class="signal-list empty-state">
+              Signals appear after profile loads.
+            </div>
+          </div>
+          <div class="panel-section">
+            <h3 class="panel-section-label">Streaming Activity</h3>
+            <p class="panel-activity-hint">Tap <strong>⚡ Activity</strong> in the header to watch live execution steps.</p>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <template id="user-card-template">
+      <button class="user-card" type="button">
+        <div class="user-card-top">
+          <div>
+            <strong class="user-name"></strong>
+            <p class="user-meta"></p>
+          </div>
+          <span class="persona-badge"></span>
+        </div>
+        <p class="user-location"></p>
+      </button>
+    </template>
+
+    <script>
+      // Sidebar toggle (mobile)
+      const sidebar   = document.getElementById('sidebar');
+      const overlay   = document.getElementById('sidebar-overlay');
+      const hamburger = document.getElementById('hamburger');
+      const sbClose   = document.getElementById('sidebar-close');
+
+      function openSidebar()  { sidebar.classList.add('open'); overlay.classList.add('show'); }
+      function closeSidebar() { sidebar.classList.remove('open'); overlay.classList.remove('show'); }
+
+      hamburger.addEventListener('click', () => sidebar.classList.contains('open') ? closeSidebar() : openSidebar());
+      sbClose.addEventListener('click', closeSidebar);
+      overlay.addEventListener('click', closeSidebar);
+
+      // Profile panel toggle
+      const panel       = document.getElementById('profile-panel');
+      const panelToggle = document.getElementById('panel-toggle');
+      const panelClose  = document.getElementById('panel-close');
+
+      function openPanel()  { panel.classList.add('open'); panelToggle.textContent = 'Profile ‹'; }
+      function closePanel() { panel.classList.remove('open'); panelToggle.textContent = 'Profile ›'; }
+
+      panelToggle.addEventListener('click', () => panel.classList.contains('open') ? closePanel() : openPanel());
+      panelClose.addEventListener('click', closePanel);
+
+      // Activity drawer toggle
+      const activityDrawer  = document.getElementById('activity-drawer');
+      const activityToggle  = document.getElementById('activity-toggle');
+      const activityClose   = document.getElementById('activity-close');
+
+      function openActivity()  { activityDrawer.classList.add('open'); activityToggle.classList.add('active'); }
+      function closeActivity() { activityDrawer.classList.remove('open'); activityToggle.classList.remove('active'); }
+
+      activityToggle.addEventListener('click', () => activityDrawer.classList.contains('open') ? closeActivity() : openActivity());
+      activityClose.addEventListener('click', closeActivity);
+
+      // Auto-open drawer when streaming starts, update event count
+      const origRenderActivity = window.__renderActivityHook;
+      const activityCount = document.getElementById('activity-count');
+      const activityPulse = document.getElementById('activity-pulse');
+      const activityFeed  = document.getElementById('activity-feed');
+
+      const activityObserver = new MutationObserver(() => {
+        const items = activityFeed.querySelectorAll('.activity-item');
+        if (items.length > 0) {
+          activityCount.textContent = items.length;
+          activityPulse.classList.add('pulsing');
+          openActivity();
+        } else {
+          activityCount.textContent = '';
+          activityPulse.classList.remove('pulsing');
+        }
+      });
+      activityObserver.observe(activityFeed, { childList: true, subtree: false });
+
+      // Auto-grow textarea
+      const chatInput = document.getElementById('chat-input');
+      chatInput.addEventListener('input', () => {
+        chatInput.style.height = 'auto';
+        chatInput.style.height = Math.min(chatInput.scrollHeight, 200) + 'px';
+      });
+    </script>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
